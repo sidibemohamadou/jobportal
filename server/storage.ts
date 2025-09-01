@@ -878,9 +878,14 @@ export class DatabaseStorage implements IStorage {
   private async calculateAutoScore(application: InsertApplication): Promise<number> {
     let score = 50; // Base score
     
+    // Présence du CV (+20 points)
     if (application.cvPath) score += 20;
+    
+    // Qualité de la lettre de motivation (+15 points)
     if (application.coverLetter && application.coverLetter.length > 100) score += 15;
-    if (application.motivationLetterPath) score += 15;
+    
+    // Copie diplôme (+15 points)
+    if (application.diplomaPath) score += 15;
     
     return Math.min(score, 100);
   }

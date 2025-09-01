@@ -85,6 +85,7 @@ export const applications = pgTable("applications", {
   coverLetter: text("cover_letter"),
   cvPath: text("cv_path"),
   motivationLetterPath: text("motivation_letter_path"),
+  diplomaPath: text("diploma_path"), // Chemin vers la copie du diplôme
   availability: timestamp("availability_date"),
   salaryExpectation: text("salary_expectation"),
   phone: varchar("phone"),
