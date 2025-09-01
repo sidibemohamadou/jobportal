@@ -117,21 +117,6 @@ export default function Landing() {
               <LanguageSelector />
               
               <div className="hidden sm:flex items-center space-x-2">
-                <Button 
-                  variant="ghost" 
-                  className="text-primary hover:text-primary/80"
-                  onClick={() => window.location.href = "/api/login"}
-                  data-testid="button-login"
-                >
-                  {t('login')}
-                </Button>
-                <Button 
-                  className="bg-primary text-primary-foreground hover:bg-primary/90"
-                  onClick={() => window.location.href = "/api/login"}
-                  data-testid="button-register"
-                >
-                  {t('register')}
-                </Button>
               </div>
               
               <Button variant="ghost" size="icon" className="md:hidden" data-testid="button-mobile-menu">

@@ -37,6 +37,9 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
   updateUser(id: string, data: Partial<User>): Promise<User>;
+  getAllUsers(): Promise<User[]>;
+  getUsersByRole(role: string): Promise<User[]>;
+  deleteUser(id: string): Promise<void>;
   
   // Job operations
   getAllJobs(): Promise<Job[]>;
@@ -319,6 +322,22 @@ export class MemStorage implements IStorage {
     };
     this.users.set(id, updated);
     return updated;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return Array.from(this.users.values());
+  }
+
+  async getUsersByRole(role: string): Promise<User[]> {
+    return Array.from(this.users.values()).filter(user => user.role === role);
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    const existing = this.users.get(id);
+    if (!existing) {
+      throw new Error("User not found");
+    }
+    this.users.delete(id);
   }
 
   // Analytics operations

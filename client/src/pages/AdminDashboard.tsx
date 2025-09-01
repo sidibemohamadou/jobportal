@@ -173,13 +173,13 @@ export default function AdminDashboard() {
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold">Vue d'ensemble</h2>
               <div className="flex space-x-2">
-                <Link href="/admin/applications">
+                <Link to="/admin/applications">
                   <Button variant="outline">
                     <FileText className="h-4 w-4 mr-2" />
                     Candidatures
                   </Button>
                 </Link>
-                <Link href="/admin/jobs">
+                <Link to="/admin/jobs">
                   <Button>
                     <Plus className="h-4 w-4 mr-2" />
                     Nouvelle offre
@@ -637,7 +637,7 @@ export default function AdminDashboard() {
             <h2 className="text-2xl font-bold">Gestion</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <Link href="/admin/applications">
+              <Link to="/admin/applications">
                 <Card className="cursor-pointer hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -653,7 +653,7 @@ export default function AdminDashboard() {
                 </Card>
               </Link>
 
-              <Link href="/admin/jobs">
+              <Link to="/admin/jobs">
                 <Card className="cursor-pointer hover:shadow-lg transition-shadow">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -670,7 +670,7 @@ export default function AdminDashboard() {
               </Link>
 
               {(user as any)?.role === "admin" && (
-                <Link href="/admin/users">
+                <Link to="/admin/users">
                   <Card className="cursor-pointer hover:shadow-lg transition-shadow">
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2">

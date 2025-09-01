@@ -343,6 +343,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User management routes (admin/HR only)
+  app.get("/api/users", isAuthenticated, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'hr')) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const { role } = req.query;
+      const users = role ? await storage.getUsersByRole(role as string) : await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  app.put("/api/users/:id", isAuthenticated, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'hr')) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const { id } = req.params;
+      const updateData = req.body;
+      
+      // Ne pas permettre de modifier son propre rôle
+      if (id === req.user.claims.sub && updateData.role && updateData.role !== currentUser.role) {
+        return res.status(400).json({ message: "Cannot modify your own role" });
+      }
+      
+      const updatedUser = await storage.updateUser(id, updateData);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user:", error);
+      res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  app.delete("/api/users/:id", isAuthenticated, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      if (!currentUser || currentUser.role !== 'admin') {
+        return res.status(403).json({ message: "Access denied - Admin only" });
+      }
+      
+      const { id } = req.params;
+      
+      // Ne pas permettre de supprimer son propre compte
+      if (id === req.user.claims.sub) {
+        return res.status(400).json({ message: "Cannot delete your own account" });
+      }
+      
+      await storage.deleteUser(id);
+      res.json({ message: "User deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
