@@ -114,6 +114,7 @@ export class MemStorage implements IStorage {
       lastName: userData.lastName || null,
       profileImageUrl: userData.profileImageUrl || null,
       phone: userData.phone || null,
+      role: userData.role || "candidate",
       createdAt: existingUser?.createdAt || new Date(),
       updatedAt: new Date(),
     };

@@ -17,7 +17,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      let user = await storage.getUser(userId);
+      
+      // Si l'utilisateur n'a pas de rôle, on lui assigne "admin" temporairement pour les tests
+      if (!user || !user.role) {
+        user = await storage.upsertUser({
+          id: userId,
+          email: req.user.claims.email,
+          firstName: req.user.claims.first_name,
+          lastName: req.user.claims.last_name,
+          profileImageUrl: req.user.claims.profile_image_url,
+          role: "admin" // Rôle temporaire pour les tests
+        });
+      }
+      
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
@@ -154,6 +167,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error setting document:", error);
       res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Admin routes - require admin/hr/recruiter role
+  const requireAdminRole = async (req: any, res: any, next: any) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      if (!user?.role || !["admin", "hr", "recruiter"].includes(user.role)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      req.user.role = user.role; // Attach role to request
+      next();
+    } catch (error) {
+      res.status(500).json({ message: "Error checking permissions" });
+    }
+  };
+
+  // Admin job management
+  app.get("/api/admin/jobs", isAuthenticated, requireAdminRole, async (req, res) => {
+    try {
+      const jobs = await storage.getAllJobs();
+      res.json(jobs);
+    } catch (error) {
+      console.error("Error fetching admin jobs:", error);
+      res.status(500).json({ message: "Failed to fetch jobs" });
+    }
+  });
+
+  // Admin application management
+  app.get("/api/admin/applications", isAuthenticated, requireAdminRole, async (req, res) => {
+    try {
+      // Mock data pour le moment
+      const applications = [];
+      res.json(applications);
+    } catch (error) {
+      console.error("Error fetching admin applications:", error);
+      res.status(500).json({ message: "Failed to fetch applications" });
     }
   });
 

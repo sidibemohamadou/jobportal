@@ -9,24 +9,49 @@ import CandidateLogin from "@/pages/CandidateLogin";
 import CandidateDashboard from "@/pages/CandidateDashboard";
 import Profile from "@/pages/Profile";
 import Applications from "@/pages/Applications";
+import AdminDashboard from "@/pages/AdminDashboard";
+import JobManagement from "@/pages/JobManagement";
+import ApplicationManagement from "@/pages/ApplicationManagement";
 import NotFound from "@/pages/not-found";
 
 function Router() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center">Chargement...</div>;
+  }
 
   return (
     <Switch>
-      {isLoading || !isAuthenticated ? (
+      {!isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
           <Route path="/candidate-login" component={CandidateLogin} />
         </>
       ) : (
         <>
-          <Route path="/" component={CandidateDashboard} />
-          <Route path="/profile" component={Profile} />
-          <Route path="/applications" component={Applications} />
-          <Route path="/jobs" component={Landing} />
+          {/* Routes pour candidats */}
+          {user?.role === "candidate" && (
+            <>
+              <Route path="/" component={CandidateDashboard} />
+              <Route path="/profile" component={Profile} />
+              <Route path="/applications" component={Applications} />
+              <Route path="/jobs" component={Landing} />
+            </>
+          )}
+          
+          {/* Routes pour recruteurs, RH et admins */}
+          {(user?.role === "recruiter" || user?.role === "hr" || user?.role === "admin") && (
+            <>
+              <Route path="/" component={AdminDashboard} />
+              <Route path="/admin" component={AdminDashboard} />
+              <Route path="/admin/jobs" component={JobManagement} />
+              <Route path="/admin/applications" component={ApplicationManagement} />
+              {user?.role === "admin" && (
+                <Route path="/admin/users" component={AdminDashboard} />
+              )}
+            </>
+          )}
         </>
       )}
       <Route component={NotFound} />
