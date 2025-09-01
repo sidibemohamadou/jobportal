@@ -25,7 +25,7 @@ export interface IStorage {
   searchJobs(query: string, filters: any): Promise<Job[]>;
   
   // Application operations
-  createApplication(application: InsertApplication): Promise<Application>;
+  createApplication(application: InsertApplication, userId: string): Promise<Application>;
   getApplicationsByUser(userId: string): Promise<Application[]>;
   getApplication(id: number): Promise<Application | undefined>;
   updateApplication(id: number, application: UpdateApplication): Promise<Application>;
@@ -34,6 +34,11 @@ export interface IStorage {
   
   // Recruitment operations
   getRecruiters(): Promise<User[]>;
+  
+  // Analytics operations
+  getKPIs(): Promise<any>;
+  getApplicationAnalytics(): Promise<any>;
+  getJobAnalytics(): Promise<any>;
 }
 
 export class MemStorage implements IStorage {
@@ -199,10 +204,16 @@ export class MemStorage implements IStorage {
   // Application operations
   async createApplication(applicationData: InsertApplication, userId: string): Promise<Application> {
     const application: Application = {
-      ...applicationData,
       id: this.nextApplicationId++,
       userId,
+      jobId: applicationData.jobId,
+      phone: applicationData.phone || null,
       status: "pending",
+      coverLetter: applicationData.coverLetter || null,
+      cvPath: applicationData.cvPath || null,
+      motivationLetterPath: applicationData.motivationLetterPath || null,
+      availability: applicationData.availability || null,
+      salaryExpectation: applicationData.salaryExpectation || null,
       assignedRecruiter: null,
       autoScore: 0,
       manualScore: null,
@@ -260,6 +271,184 @@ export class MemStorage implements IStorage {
     };
     this.users.set(id, updated);
     return updated;
+  }
+
+  // Analytics operations
+  async getKPIs(): Promise<any> {
+    const allApplications = Array.from(this.applications.values());
+    const allJobs = Array.from(this.jobs.values());
+    const allUsers = Array.from(this.users.values());
+    
+    const candidates = allUsers.filter(u => u.role === 'candidate');
+    const recruiters = allUsers.filter(u => u.role === 'recruiter' || u.role === 'hr');
+    
+    const statusCounts = {
+      pending: allApplications.filter(a => a.status === 'pending').length,
+      reviewed: allApplications.filter(a => a.status === 'reviewed').length,
+      interview: allApplications.filter(a => a.status === 'interview').length,
+      accepted: allApplications.filter(a => a.status === 'accepted').length,
+      rejected: allApplications.filter(a => a.status === 'rejected').length,
+      assigned: allApplications.filter(a => a.status === 'assigned').length,
+      scored: allApplications.filter(a => a.status === 'scored').length,
+    };
+
+    const conversionRate = allApplications.length > 0 
+      ? ((statusCounts.accepted / allApplications.length) * 100).toFixed(1)
+      : '0.0';
+
+    const avgProcessingTime = this.calculateAvgProcessingTime(allApplications);
+    
+    return {
+      totalApplications: allApplications.length,
+      totalJobs: allJobs.filter(j => j.isActive === 1).length,
+      totalCandidates: candidates.length,
+      totalRecruiters: recruiters.length,
+      statusCounts,
+      conversionRate: parseFloat(conversionRate),
+      avgProcessingTime,
+      topPerformingJobs: this.getTopJobs(allApplications, allJobs)
+    };
+  }
+
+  async getApplicationAnalytics(): Promise<any> {
+    const allApplications = Array.from(this.applications.values());
+    
+    // Applications par mois (6 derniers mois)
+    const monthlyData = this.getMonthlyApplications(allApplications);
+    
+    // Applications par statut pour graphique
+    const statusData = [
+      { name: 'En attente', value: allApplications.filter(a => a.status === 'pending').length },
+      { name: 'Examinées', value: allApplications.filter(a => a.status === 'reviewed').length },
+      { name: 'Entretiens', value: allApplications.filter(a => a.status === 'interview').length },
+      { name: 'Acceptées', value: allApplications.filter(a => a.status === 'accepted').length },
+      { name: 'Refusées', value: allApplications.filter(a => a.status === 'rejected').length },
+      { name: 'Assignées', value: allApplications.filter(a => a.status === 'assigned').length },
+      { name: 'Notées', value: allApplications.filter(a => a.status === 'scored').length },
+    ].filter(item => item.value > 0);
+    
+    return {
+      monthlyApplications: monthlyData,
+      statusDistribution: statusData,
+      scoreDistribution: this.getScoreDistribution(allApplications)
+    };
+  }
+
+  async getJobAnalytics(): Promise<any> {
+    const allJobs = Array.from(this.jobs.values());
+    const allApplications = Array.from(this.applications.values());
+    
+    const jobPopularity = allJobs.map(job => ({
+      name: job.title.length > 20 ? job.title.substring(0, 20) + '...' : job.title,
+      applications: allApplications.filter(a => a.jobId === job.id).length,
+      company: job.company
+    })).sort((a, b) => b.applications - a.applications).slice(0, 10);
+    
+    const contractTypeData = [
+      { name: 'CDI', value: allJobs.filter(j => j.contractType === 'CDI').length },
+      { name: 'CDD', value: allJobs.filter(j => j.contractType === 'CDD').length },
+      { name: 'Freelance', value: allJobs.filter(j => j.contractType === 'Freelance').length },
+      { name: 'Stage', value: allJobs.filter(j => j.contractType === 'Stage').length },
+    ].filter(item => item.value > 0);
+    
+    const experienceLevelData = [
+      { name: 'Débutant', value: allJobs.filter(j => j.experienceLevel === 'Débutant').length },
+      { name: 'Intermédiaire', value: allJobs.filter(j => j.experienceLevel === 'Intermédiaire').length },
+      { name: 'Senior', value: allJobs.filter(j => j.experienceLevel === 'Senior').length },
+    ].filter(item => item.value > 0);
+    
+    return {
+      jobPopularity,
+      contractTypes: contractTypeData,
+      experienceLevels: experienceLevelData
+    };
+  }
+
+  private calculateAvgProcessingTime(applications: Application[]): number {
+    const processedApps = applications.filter(a => 
+      a.status === 'accepted' || a.status === 'rejected'
+    );
+    
+    if (processedApps.length === 0) return 0;
+    
+    const totalTime = processedApps.reduce((sum, app) => {
+      const updatedAt = app.updatedAt || new Date();
+      const createdAt = app.createdAt || new Date();
+      const daysDiff = Math.ceil(
+        (updatedAt.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      return sum + daysDiff;
+    }, 0);
+    
+    return Math.round(totalTime / processedApps.length);
+  }
+
+  private getTopJobs(applications: Application[], jobs: Job[]): any[] {
+    const jobAppCounts = new Map<number, number>();
+    
+    applications.forEach(app => {
+      const current = jobAppCounts.get(app.jobId) || 0;
+      jobAppCounts.set(app.jobId, current + 1);
+    });
+    
+    return Array.from(jobAppCounts.entries())
+      .map(([jobId, count]) => {
+        const job = jobs.find(j => j.id === jobId);
+        return job ? {
+          title: job.title,
+          company: job.company,
+          applications: count
+        } : null;
+      })
+      .filter(item => item !== null)
+      .sort((a, b) => b!.applications - a!.applications)
+      .slice(0, 5);
+  }
+
+  private getMonthlyApplications(applications: Application[]): any[] {
+    const monthlyData: { [key: string]: number } = {};
+    const now = new Date();
+    
+    // Initialiser les 6 derniers mois
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = date.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' });
+      monthlyData[key] = 0;
+    }
+    
+    // Compter les applications par mois
+    applications.forEach(app => {
+      const createdAt = app.createdAt || new Date();
+      const date = new Date(createdAt);
+      const key = date.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' });
+      if (monthlyData.hasOwnProperty(key)) {
+        monthlyData[key]++;
+      }
+    });
+    
+    return Object.entries(monthlyData).map(([month, count]) => ({ month, count }));
+  }
+
+  private getScoreDistribution(applications: Application[]): any[] {
+    const scoredApps = applications.filter(a => (a.autoScore || 0) > 0);
+    
+    if (scoredApps.length === 0) return [];
+    
+    const ranges = [
+      { name: '0-20', min: 0, max: 20, count: 0 },
+      { name: '21-40', min: 21, max: 40, count: 0 },
+      { name: '41-60', min: 41, max: 60, count: 0 },
+      { name: '61-80', min: 61, max: 80, count: 0 },
+      { name: '81-100', min: 81, max: 100, count: 0 },
+    ];
+    
+    scoredApps.forEach(app => {
+      const score = app.autoScore || 0;
+      const range = ranges.find(r => score >= r.min && score <= r.max);
+      if (range) range.count++;
+    });
+    
+    return ranges.filter(r => r.count > 0);
   }
 
   async getApplicationsForJob(jobId: number): Promise<Application[]> {

@@ -104,7 +104,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId,
       });
       
-      const application = await storage.createApplication(validatedData);
+      const application = await storage.createApplication(validatedData, userId);
       res.status(201).json(application);
     } catch (error) {
       console.error("Error creating application:", error);
@@ -309,6 +309,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error completing profile:", error);
       res.status(500).json({ message: "Failed to complete profile" });
+    }
+  });
+
+  // Admin KPIs and analytics
+  app.get("/api/admin/kpis", isAuthenticated, requireAdminRole, async (req, res) => {
+    try {
+      const kpis = await storage.getKPIs();
+      res.json(kpis);
+    } catch (error) {
+      console.error("Error fetching KPIs:", error);
+      res.status(500).json({ message: "Failed to fetch KPIs" });
+    }
+  });
+
+  app.get("/api/admin/analytics/applications", isAuthenticated, requireAdminRole, async (req, res) => {
+    try {
+      const analytics = await storage.getApplicationAnalytics();
+      res.json(analytics);
+    } catch (error) {
+      console.error("Error fetching application analytics:", error);
+      res.status(500).json({ message: "Failed to fetch analytics" });
+    }
+  });
+
+  app.get("/api/admin/analytics/jobs", isAuthenticated, requireAdminRole, async (req, res) => {
+    try {
+      const jobAnalytics = await storage.getJobAnalytics();
+      res.json(jobAnalytics);
+    } catch (error) {
+      console.error("Error fetching job analytics:", error);
+      res.status(500).json({ message: "Failed to fetch job analytics" });
     }
   });
 
