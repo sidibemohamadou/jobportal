@@ -200,11 +200,98 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/admin/applications", isAuthenticated, requireAdminRole, async (req, res) => {
     try {
       // Mock data pour le moment
-      const applications = [];
+      const applications: any[] = [];
       res.json(applications);
     } catch (error) {
       console.error("Error fetching admin applications:", error);
       res.status(500).json({ message: "Failed to fetch applications" });
+    }
+  });
+
+  // Get recruiters
+  app.get("/api/admin/recruiters", isAuthenticated, requireAdminRole, async (req, res) => {
+    try {
+      const recruiters = await storage.getRecruiters();
+      res.json(recruiters);
+    } catch (error) {
+      console.error("Error fetching recruiters:", error);
+      res.status(500).json({ message: "Failed to fetch recruiters" });
+    }
+  });
+
+  // Get top candidates for a job
+  app.get("/api/admin/top-candidates/:jobId", isAuthenticated, requireAdminRole, async (req, res) => {
+    try {
+      const { recruitmentService } = await import("./recruitmentService");
+      const jobId = parseInt(req.params.jobId);
+      const topCandidates = await recruitmentService.getTopCandidates(jobId);
+      res.json(topCandidates);
+    } catch (error) {
+      console.error("Error fetching top candidates:", error);
+      res.status(500).json({ message: "Failed to fetch top candidates" });
+    }
+  });
+
+  // Assign candidates to recruiter
+  app.post("/api/admin/assign-candidates", isAuthenticated, requireAdminRole, async (req, res) => {
+    try {
+      const { recruitmentService } = await import("./recruitmentService");
+      const { applicationIds, recruiterId } = req.body;
+      
+      if (!applicationIds || !recruiterId) {
+        return res.status(400).json({ error: "applicationIds and recruiterId are required" });
+      }
+      
+      await recruitmentService.assignCandidatesToRecruiter(applicationIds, recruiterId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error assigning candidates:", error);
+      res.status(500).json({ message: "Failed to assign candidates" });
+    }
+  });
+
+  // Get assigned candidates for recruiter
+  app.get("/api/recruiter/assigned-candidates", isAuthenticated, async (req: any, res) => {
+    try {
+      const { recruitmentService } = await import("./recruitmentService");
+      const userId = req.user.claims.sub;
+      const assignedCandidates = await recruitmentService.getAssignedApplications(userId);
+      res.json(assignedCandidates);
+    } catch (error) {
+      console.error("Error fetching assigned candidates:", error);
+      res.status(500).json({ message: "Failed to fetch assigned candidates" });
+    }
+  });
+
+  // Update manual score
+  app.put("/api/recruiter/score/:applicationId", isAuthenticated, async (req: any, res) => {
+    try {
+      const { recruitmentService } = await import("./recruitmentService");
+      const applicationId = parseInt(req.params.applicationId);
+      const { score, notes } = req.body;
+      
+      if (score === undefined) {
+        return res.status(400).json({ error: "Score is required" });
+      }
+      
+      await recruitmentService.updateManualScore(applicationId, score, notes);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating manual score:", error);
+      res.status(500).json({ message: "Failed to update score" });
+    }
+  });
+
+  // Get final top 3 results
+  app.get("/api/admin/final-top3/:jobId", isAuthenticated, requireAdminRole, async (req, res) => {
+    try {
+      const { recruitmentService } = await import("./recruitmentService");
+      const jobId = parseInt(req.params.jobId);
+      const finalTop3 = await recruitmentService.getFinalTop3(jobId);
+      res.json(finalTop3);
+    } catch (error) {
+      console.error("Error fetching final top 3:", error);
+      res.status(500).json({ message: "Failed to fetch final results" });
     }
   });
 

@@ -29,6 +29,10 @@ export interface IStorage {
   getApplication(id: number): Promise<Application | undefined>;
   updateApplication(id: number, application: UpdateApplication): Promise<Application>;
   getApplicationsForJob(jobId: number): Promise<Application[]>;
+  getApplicationsByRecruiter(recruiterId: string): Promise<Application[]>;
+  
+  // Recruitment operations
+  getRecruiters(): Promise<User[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -213,6 +217,16 @@ export class MemStorage implements IStorage {
     };
     this.applications.set(id, updated);
     return updated;
+  }
+
+  async getApplicationsByRecruiter(recruiterId: string): Promise<Application[]> {
+    return Array.from(this.applications.values()).filter(app => app.assignedRecruiter === recruiterId);
+  }
+
+  async getRecruiters(): Promise<User[]> {
+    return Array.from(this.users.values()).filter(user => 
+      user.role === "recruiter" || user.role === "hr" || user.role === "admin"
+    );
   }
 
   async getApplicationsForJob(jobId: number): Promise<Application[]> {

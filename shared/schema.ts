@@ -65,6 +65,10 @@ export const applications = pgTable("applications", {
   availabilityDate: timestamp("availability_date"),
   salaryExpectation: text("salary_expectation"),
   phone: varchar("phone"),
+  assignedRecruiter: varchar("assigned_recruiter").references(() => users.id), // Recruteur assigné
+  autoScore: integer("auto_score").default(0), // Score automatique (0-100)
+  manualScore: integer("manual_score"), // Note manuelle du recruteur (0-100)
+  scoreNotes: text("score_notes"), // Commentaires du recruteur
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

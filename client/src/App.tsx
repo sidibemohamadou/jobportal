@@ -12,6 +12,9 @@ import Applications from "@/pages/Applications";
 import AdminDashboard from "@/pages/AdminDashboard";
 import JobManagement from "@/pages/JobManagement";
 import ApplicationManagement from "@/pages/ApplicationManagement";
+import CandidateAssignment from "@/pages/CandidateAssignment";
+import CandidateScoring from "@/pages/CandidateScoring";
+import FinalResults from "@/pages/FinalResults";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -31,7 +34,7 @@ function Router() {
       ) : (
         <>
           {/* Routes pour candidats */}
-          {user?.role === "candidate" && (
+          {(user as any)?.role === "candidate" && (
             <>
               <Route path="/" component={CandidateDashboard} />
               <Route path="/profile" component={Profile} />
@@ -41,13 +44,16 @@ function Router() {
           )}
           
           {/* Routes pour recruteurs, RH et admins */}
-          {(user?.role === "recruiter" || user?.role === "hr" || user?.role === "admin") && (
+          {((user as any)?.role === "recruiter" || (user as any)?.role === "hr" || (user as any)?.role === "admin") && (
             <>
               <Route path="/" component={AdminDashboard} />
               <Route path="/admin" component={AdminDashboard} />
               <Route path="/admin/jobs" component={JobManagement} />
               <Route path="/admin/applications" component={ApplicationManagement} />
-              {user?.role === "admin" && (
+              <Route path="/admin/assignment" component={CandidateAssignment} />
+              <Route path="/admin/scoring" component={CandidateScoring} />
+              <Route path="/admin/final-results" component={FinalResults} />
+              {(user as any)?.role === "admin" && (
                 <Route path="/admin/users" component={AdminDashboard} />
               )}
             </>
