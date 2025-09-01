@@ -15,6 +15,7 @@ import ApplicationManagement from "@/pages/ApplicationManagement";
 import CandidateAssignment from "@/pages/CandidateAssignment";
 import CandidateScoring from "@/pages/CandidateScoring";
 import FinalResults from "@/pages/FinalResults";
+import ProfileCompletion from "@/pages/ProfileCompletion";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -22,6 +23,11 @@ function Router() {
 
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center">Chargement...</div>;
+  }
+
+  // Redirect to profile completion if user is a candidate and profile is not complete
+  if (isAuthenticated && (user as any)?.role === "candidate" && !(user as any)?.profileCompleted) {
+    return <ProfileCompletion />;
   }
 
   return (

@@ -16,6 +16,7 @@ export interface IStorage {
   // User operations (required for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+  updateUser(id: string, data: Partial<User>): Promise<User>;
   
   // Job operations
   getAllJobs(): Promise<Job[]>;
@@ -119,6 +120,17 @@ export class MemStorage implements IStorage {
       profileImageUrl: userData.profileImageUrl || null,
       phone: userData.phone || null,
       role: userData.role || "candidate",
+      gender: userData.gender || null,
+      maritalStatus: userData.maritalStatus || null,
+      address: userData.address || null,
+      residencePlace: userData.residencePlace || null,
+      idDocumentType: userData.idDocumentType || null,
+      idDocumentNumber: userData.idDocumentNumber || null,
+      birthDate: userData.birthDate || null,
+      birthPlace: userData.birthPlace || null,
+      birthCountry: userData.birthCountry || null,
+      nationality: userData.nationality || null,
+      profileCompleted: userData.profileCompleted || false,
       createdAt: existingUser?.createdAt || new Date(),
       updatedAt: new Date(),
     };
@@ -185,10 +197,16 @@ export class MemStorage implements IStorage {
   }
 
   // Application operations
-  async createApplication(applicationData: InsertApplication): Promise<Application> {
+  async createApplication(applicationData: InsertApplication, userId: string): Promise<Application> {
     const application: Application = {
       ...applicationData,
       id: this.nextApplicationId++,
+      userId,
+      status: "pending",
+      assignedRecruiter: null,
+      autoScore: 0,
+      manualScore: null,
+      scoreNotes: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -227,6 +245,21 @@ export class MemStorage implements IStorage {
     return Array.from(this.users.values()).filter(user => 
       user.role === "recruiter" || user.role === "hr" || user.role === "admin"
     );
+  }
+
+  async updateUser(id: string, updateData: Partial<User>): Promise<User> {
+    const existing = this.users.get(id);
+    if (!existing) {
+      throw new Error("User not found");
+    }
+    
+    const updated: User = {
+      ...existing,
+      ...updateData,
+      updatedAt: new Date(),
+    };
+    this.users.set(id, updated);
+    return updated;
   }
 
   async getApplicationsForJob(jobId: number): Promise<Application[]> {

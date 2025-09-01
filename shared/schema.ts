@@ -8,6 +8,7 @@ import {
   varchar,
   serial,
   integer,
+  boolean,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -32,6 +33,26 @@ export const users = pgTable("users", {
   profileImageUrl: varchar("profile_image_url"),
   phone: varchar("phone"),
   role: text("role").default("candidate"), // candidate, recruiter, hr, admin
+  
+  // Informations personnelles détaillées
+  gender: text("gender"), // Homme, Femme, Autre
+  maritalStatus: text("marital_status"), // Célibataire, Marié(e), Divorcé(e), Veuf(ve)
+  address: text("address"),
+  residencePlace: varchar("residence_place"),
+  
+  // Pièce d'identité
+  idDocumentType: text("id_document_type"), // CNI, Passeport, Permis de séjour
+  idDocumentNumber: varchar("id_document_number"),
+  
+  // Informations de naissance
+  birthDate: timestamp("birth_date"),
+  birthPlace: varchar("birth_place"),
+  birthCountry: varchar("birth_country"),
+  nationality: varchar("nationality"),
+  
+  // Profil complété
+  profileCompleted: boolean("profile_completed").default(false),
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

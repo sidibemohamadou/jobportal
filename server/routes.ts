@@ -295,6 +295,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Complete user profile
+  app.put("/api/profile/complete", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const profileData = {
+        ...req.body,
+        profileCompleted: true
+      };
+      
+      const updatedUser = await storage.updateUser(userId, profileData);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error completing profile:", error);
+      res.status(500).json({ message: "Failed to complete profile" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
