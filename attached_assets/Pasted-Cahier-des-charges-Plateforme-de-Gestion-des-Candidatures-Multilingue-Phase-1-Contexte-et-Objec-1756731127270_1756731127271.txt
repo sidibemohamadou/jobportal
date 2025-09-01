@@ -1,0 +1,221 @@
+Cahier des charges - Plateforme de Gestion des Candidatures Multilingue (Phase 1)
+Contexte et Objectif
+ La plateforme vise à digitaliser et centraliser le processus de recrutement et de gestion des candidats pour une entreprise ou organisation. Cette première phase se concentre sur la gestion des comptes, des candidatures et des tableaux de bord pour les utilisateurs, en vue de stabiliser la plateforme avant l’intégration de fonctionnalités avancées.
+
+
+Fonctionnalités Principales (Phase 1)
+2.1 Gestion des Candidats
+Création, modification et suppression de comptes candidats.
+
+
+Espace personnel sécurisé pour chaque candidat.
+
+
+Dépôt et suivi des candidatures.
+
+
+Historique des candidatures.
+
+
+Notifications par email sur l’avancement de la candidature.
+
+
+Téléchargement de CV, lettre de motivation et autres documents.
+
+
+2.2 Gestion des RH et Administrateurs
+Tableaux de bord personnalisés.
+
+
+Gestion des comptes et profils des utilisateurs.
+
+
+Attribution de rôles et permissions spécifiques (RH, admin, recruteur).
+
+
+Visualisation et filtrage des candidatures selon critères (poste, date, statut, etc.).
+
+
+Commentaires internes sur les candidatures.
+
+
+Export des données au format CSV/Excel.
+
+
+2.3 Multi-langues
+Interface disponible en français, anglais et portugais.
+
+
+Gestion des traductions via fichiers de langue ou base de données.
+
+
+Possibilité pour l’utilisateur de changer la langue à tout moment.
+
+
+2.4 Sécurité
+Authentification sécurisée (mot de passe hashé, OAuth ou SSO).
+
+
+Gestion des rôles et permissions.
+
+
+Chiffrement des données sensibles.
+
+
+Protection contre les attaques (SQL Injection, XSS, CSRF).
+
+
+Journalisation des actions critiques.
+
+
+2.5 Sauvegarde et Maintenance
+Sauvegarde automatique quotidienne de la base de données.
+
+
+Possibilité de restaurer la base à partir de sauvegardes.
+
+
+Monitoring du serveur et alertes.
+
+
+Gestion des logs et surveillance de la sécurité.
+
+
+2.6 Interface et UX
+Interface intuitive et responsive pour desktop et mobile.
+
+
+Tableaux de bord interactifs pour RH et administrateurs.
+
+
+Filtres avancés et recherche rapide.
+
+
+Notifications en temps réel.
+
+
+Design clair et professionnel.
+
+
+Spécifications Techniques (Phase 1)
+
+
+3.1 Backend
+Langage : Node.js
+
+
+Base de données : PostgreSQL ou MySQL.
+
+
+API RESTful pour communication frontend-backend.
+
+
+Gestion des rôles et permissions.
+
+
+3.2 Frontend
+Framework : React.js.
+
+
+Gestion de l’état : 
+Tableaux de bord.
+
+
+Formulaires dynamiques et validation.
+
+
+Support multi-langue avec i18n.
+
+
+3.3 Infrastructure
+Déploiement sur VPS CentOS.
+
+
+Serveur Web :
+
+
+Cron jobs pour sauvegardes et notifications.
+
+
+3.4 Gestion des Permissions
+Admin : accès total, gestion complète, accès à tous les tableaux de bord.
+
+
+RH : gestion des candidatures et comptes candidats.
+
+
+Recruteur : accès limité aux candidatures assignées.
+
+
+Candidat : accès à son espace personnel uniquement.
+
+
+Maintenance et Support
+
+
+Documentation technique et utilisateur.
+
+
+Plan de maintenance périodique.
+
+
+Système de support pour signaler bugs et problèmes.
+
+
+Livrables
+
+
+Code source complet et documenté.
+
+
+Scripts de création et sauvegarde de la base de données.
+
+
+Documentation technique et utilisateur.
+
+
+Version déployable sur VPS CentOS.
+
+
+Rapport de tests unitaires, fonctionnels et de sécurité.
+
+
+Évolutivité
+
+
+Ajout de nouvelles langues.
+
+
+Modules supplémentaires (module IA pour analyse des CV prévu pour les versions futures).
+
+
+Intégration avec d’autres systèmes RH via API.
+
+
+Performance
+
+
+Temps de réponse inférieur à 2 secondes pour requêtes principales.
+
+
+Gestion efficace des grandes quantités de données.
+
+
+Optimisation des requêtes SQL.
+
+
+Tests et Validation
+
+
+Tests unitaires backend et frontend.
+
+
+Tests d’intégration API.
+
+
+Tests de sécurité.
+
+
+Validation UX et compatibilité multi-navigateurs.
+Cette version initiale met l’accent sur la solidité des modules de base : gestion des candidats, comptes, tableaux de bord et sécurité, laissant les fonctionnalités IA pour les versions ultérieures.
+
