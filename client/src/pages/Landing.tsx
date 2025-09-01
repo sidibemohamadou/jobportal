@@ -7,7 +7,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { JobCard } from "@/components/JobCard";
-import { ApplicationModal } from "@/components/ApplicationModal";
 import { 
   Briefcase, 
   Search, 
@@ -23,8 +22,6 @@ import type { Job } from "@shared/schema";
 export default function Landing() {
   const [searchQuery, setSearchQuery] = useState("");
   const [locationQuery, setLocationQuery] = useState("");
-  const [selectedJob, setSelectedJob] = useState<Job | null>(null);
-  const [showApplicationModal, setShowApplicationModal] = useState(false);
   const [contractFilters, setContractFilters] = useState<string[]>([]);
   const [experienceFilters, setExperienceFilters] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("newest");
@@ -48,8 +45,8 @@ export default function Landing() {
   };
 
   const handleApply = (job: Job) => {
-    setSelectedJob(job);
-    setShowApplicationModal(true);
+    // Redirection vers la page de connexion candidat
+    window.location.href = "/candidate-login";
   };
 
   const handleContractFilter = (contractType: string, checked: boolean) => {
@@ -364,15 +361,6 @@ export default function Landing() {
         </div>
       </footer>
 
-      {/* Application Modal */}
-      <ApplicationModal
-        job={selectedJob}
-        isOpen={showApplicationModal}
-        onClose={() => {
-          setShowApplicationModal(false);
-          setSelectedJob(null);
-        }}
-      />
     </div>
   );
 }

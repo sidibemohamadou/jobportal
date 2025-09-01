@@ -67,12 +67,6 @@ export function JobCard({ job, onApply }: JobCardProps) {
             </div>
           </div>
           <div className="text-right">
-            <div 
-              className="text-lg font-semibold text-foreground"
-              data-testid={`text-salary-${job.id}`}
-            >
-              {job.salary}
-            </div>
             <Badge 
               className={getContractTypeColor(job.contractType)}
               data-testid={`badge-contract-${job.id}`}

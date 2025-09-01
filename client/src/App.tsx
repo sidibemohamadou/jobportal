@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/Landing";
+import CandidateLogin from "@/pages/CandidateLogin";
 import CandidateDashboard from "@/pages/CandidateDashboard";
 import Profile from "@/pages/Profile";
 import Applications from "@/pages/Applications";
@@ -16,7 +17,10 @@ function Router() {
   return (
     <Switch>
       {isLoading || !isAuthenticated ? (
-        <Route path="/" component={Landing} />
+        <>
+          <Route path="/" component={Landing} />
+          <Route path="/candidate-login" component={CandidateLogin} />
+        </>
       ) : (
         <>
           <Route path="/" component={CandidateDashboard} />
