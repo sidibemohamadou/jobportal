@@ -2,6 +2,13 @@ import {
   users,
   jobs,
   applications,
+  employees,
+  contracts,
+  contractAmendments,
+  payroll,
+  leaveRequests,
+  leaveBalances,
+  hrRequests,
   type User,
   type UpsertUser,
   type Job,
@@ -9,6 +16,19 @@ import {
   type Application,
   type InsertApplication,
   type UpdateApplication,
+  type Employee,
+  type InsertEmployee,
+  type Contract,
+  type InsertContract,
+  type ContractAmendment,
+  type InsertAmendment,
+  type Payroll,
+  type InsertPayroll,
+  type LeaveRequest,
+  type InsertLeaveRequest,
+  type LeaveBalance,
+  type HrRequest,
+  type InsertHrRequest,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -39,6 +59,34 @@ export interface IStorage {
   getKPIs(): Promise<any>;
   getApplicationAnalytics(): Promise<any>;
   getJobAnalytics(): Promise<any>;
+  
+  // Employee operations
+  createEmployee(employee: InsertEmployee): Promise<Employee>;
+  getEmployee(id: number): Promise<Employee | undefined>;
+  getEmployeeByUserId(userId: string): Promise<Employee | undefined>;
+  getAllEmployees(): Promise<Employee[]>;
+  updateEmployee(id: number, data: Partial<Employee>): Promise<Employee>;
+  
+  // Contract operations
+  createContract(contract: InsertContract): Promise<Contract>;
+  getContract(id: number): Promise<Contract | undefined>;
+  getContractsByEmployee(employeeId: number): Promise<Contract[]>;
+  updateContract(id: number, data: Partial<Contract>): Promise<Contract>;
+  getActiveContracts(): Promise<Contract[]>;
+  
+  // Leave operations
+  createLeaveRequest(request: InsertLeaveRequest): Promise<LeaveRequest>;
+  getLeaveRequest(id: number): Promise<LeaveRequest | undefined>;
+  getLeaveRequestsByEmployee(employeeId: number): Promise<LeaveRequest[]>;
+  updateLeaveRequest(id: number, data: Partial<LeaveRequest>): Promise<LeaveRequest>;
+  getLeaveBalance(employeeId: number, year: number): Promise<LeaveBalance[]>;
+  
+  // HR Request operations
+  createHrRequest(request: InsertHrRequest): Promise<HrRequest>;
+  getHrRequest(id: number): Promise<HrRequest | undefined>;
+  getHrRequestsByEmployee(employeeId: number): Promise<HrRequest[]>;
+  getAllHrRequests(): Promise<HrRequest[]>;
+  updateHrRequest(id: number, data: Partial<HrRequest>): Promise<HrRequest>;
 }
 
 export class MemStorage implements IStorage {
@@ -449,6 +497,241 @@ export class MemStorage implements IStorage {
     });
     
     return ranges.filter(r => r.count > 0);
+  }
+
+  // Employee operations
+  async createEmployee(employee: InsertEmployee): Promise<Employee> {
+    const newEmployee: Employee = {
+      id: this.nextEmployeeId++,
+      ...employee,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.employees.set(newEmployee.id, newEmployee);
+    return newEmployee;
+  }
+
+  async getEmployee(id: number): Promise<Employee | undefined> {
+    return this.employees.get(id);
+  }
+
+  async getEmployeeByUserId(userId: string): Promise<Employee | undefined> {
+    return Array.from(this.employees.values()).find(e => e.userId === userId);
+  }
+
+  async getAllEmployees(): Promise<Employee[]> {
+    return Array.from(this.employees.values());
+  }
+
+  async updateEmployee(id: number, data: Partial<Employee>): Promise<Employee> {
+    const existing = this.employees.get(id);
+    if (!existing) {
+      throw new Error("Employee not found");
+    }
+    const updated: Employee = {
+      ...existing,
+      ...data,
+      updatedAt: new Date(),
+    };
+    this.employees.set(id, updated);
+    return updated;
+  }
+
+  // Contract operations
+  async createContract(contract: InsertContract): Promise<Contract> {
+    const newContract: Contract = {
+      id: this.nextContractId++,
+      ...contract,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.contracts.set(newContract.id, newContract);
+    return newContract;
+  }
+
+  async getContract(id: number): Promise<Contract | undefined> {
+    return this.contracts.get(id);
+  }
+
+  async getContractsByEmployee(employeeId: number): Promise<Contract[]> {
+    return Array.from(this.contracts.values()).filter(c => c.employeeId === employeeId);
+  }
+
+  async updateContract(id: number, data: Partial<Contract>): Promise<Contract> {
+    const existing = this.contracts.get(id);
+    if (!existing) {
+      throw new Error("Contract not found");
+    }
+    const updated: Contract = {
+      ...existing,
+      ...data,
+      updatedAt: new Date(),
+    };
+    this.contracts.set(id, updated);
+    return updated;
+  }
+
+  async getActiveContracts(): Promise<Contract[]> {
+    return Array.from(this.contracts.values()).filter(c => c.status === "active");
+  }
+
+  // Leave operations
+  async createLeaveRequest(request: InsertLeaveRequest): Promise<LeaveRequest> {
+    const newRequest: LeaveRequest = {
+      id: this.nextLeaveRequestId++,
+      ...request,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.leaveRequests.set(newRequest.id, newRequest);
+    return newRequest;
+  }
+
+  async getLeaveRequest(id: number): Promise<LeaveRequest | undefined> {
+    return this.leaveRequests.get(id);
+  }
+
+  async getLeaveRequestsByEmployee(employeeId: number): Promise<LeaveRequest[]> {
+    return Array.from(this.leaveRequests.values()).filter(r => r.employeeId === employeeId);
+  }
+
+  async updateLeaveRequest(id: number, data: Partial<LeaveRequest>): Promise<LeaveRequest> {
+    const existing = this.leaveRequests.get(id);
+    if (!existing) {
+      throw new Error("Leave request not found");
+    }
+    const updated: LeaveRequest = {
+      ...existing,
+      ...data,
+      updatedAt: new Date(),
+    };
+    this.leaveRequests.set(id, updated);
+    return updated;
+  }
+
+  async getLeaveBalance(employeeId: number, year: number): Promise<LeaveBalance[]> {
+    return Array.from(this.leaveBalances.values())
+      .filter(b => b.employeeId === employeeId && b.year === year);
+  }
+
+  async updateLeaveBalance(employeeId: number, year: number, leaveType: string, usedDays: number): Promise<void> {
+    const key = `${employeeId}-${year}-${leaveType}`;
+    const existing = this.leaveBalances.get(key);
+    
+    if (existing) {
+      const updated: LeaveBalance = {
+        ...existing,
+        usedDays: existing.usedDays + usedDays,
+        remainingDays: existing.totalDays - (existing.usedDays + usedDays),
+        updatedAt: new Date(),
+      };
+      this.leaveBalances.set(key, updated);
+    } else {
+      // Créer un nouveau solde avec des valeurs par défaut
+      const defaultDays = this.getDefaultLeaveDays(leaveType);
+      const newBalance: LeaveBalance = {
+        id: Math.floor(Math.random() * 1000000),
+        employeeId,
+        year,
+        leaveType,
+        totalDays: defaultDays,
+        usedDays,
+        remainingDays: defaultDays - usedDays,
+        carriedOverDays: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+      this.leaveBalances.set(key, newBalance);
+    }
+  }
+
+  private getDefaultLeaveDays(leaveType: string): number {
+    const defaults: { [key: string]: number } = {
+      vacation: 25,
+      sick: 90,
+      personal: 5,
+      maternity: 112,
+      paternity: 25
+    };
+    return defaults[leaveType] || 0;
+  }
+
+  // HR Request operations
+  async createHrRequest(request: InsertHrRequest): Promise<HrRequest> {
+    const newRequest: HrRequest = {
+      id: this.nextHrRequestId++,
+      ...request,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.hrRequests.set(newRequest.id, newRequest);
+    return newRequest;
+  }
+
+  async getHrRequest(id: number): Promise<HrRequest | undefined> {
+    return this.hrRequests.get(id);
+  }
+
+  async getHrRequestsByEmployee(employeeId: number): Promise<HrRequest[]> {
+    return Array.from(this.hrRequests.values()).filter(r => r.employeeId === employeeId);
+  }
+
+  async getAllHrRequests(): Promise<HrRequest[]> {
+    return Array.from(this.hrRequests.values());
+  }
+
+  async updateHrRequest(id: number, data: Partial<HrRequest>): Promise<HrRequest> {
+    const existing = this.hrRequests.get(id);
+    if (!existing) {
+      throw new Error("HR request not found");
+    }
+    const updated: HrRequest = {
+      ...existing,
+      ...data,
+      updatedAt: new Date(),
+    };
+    this.hrRequests.set(id, updated);
+    return updated;
+  }
+
+  // Payroll operations (simplified implementation)
+  async createPayroll(payroll: InsertPayroll): Promise<Payroll> {
+    const newPayroll: Payroll = {
+      id: this.nextPayrollId++,
+      ...payroll,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.payrolls.set(newPayroll.id, newPayroll);
+    return newPayroll;
+  }
+
+  async getPayroll(id: number): Promise<Payroll | undefined> {
+    return this.payrolls.get(id);
+  }
+
+  async getPayrollByEmployee(employeeId: number, period?: string): Promise<Payroll[]> {
+    const payrolls = Array.from(this.payrolls.values())
+      .filter(p => p.employeeId === employeeId);
+    
+    if (period) {
+      return payrolls.filter(p => p.period === period);
+    }
+    return payrolls;
+  }
+
+  async updatePayroll(id: number, data: Partial<Payroll>): Promise<Payroll> {
+    const existing = this.payrolls.get(id);
+    if (!existing) {
+      throw new Error("Payroll not found");
+    }
+    const updated: Payroll = {
+      ...existing,
+      ...data,
+      updatedAt: new Date(),
+    };
+    this.payrolls.set(id, updated);
+    return updated;
   }
 
   async getApplicationsForJob(jobId: number): Promise<Application[]> {

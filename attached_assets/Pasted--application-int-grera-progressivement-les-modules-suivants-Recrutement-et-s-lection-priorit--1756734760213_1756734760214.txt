@@ -1,0 +1,92 @@
+’application intégrera progressivement les modules suivants :
+
+Recrutement et sélection (priorité)
+
+Notes d’entretien
+
+CV des candidats
+
+Processus d’intégration (onboarding)
+
+Gestion de la paie
+
+Tâches administratives liées aux employés
+
+2. Priorisation par version
+Version 1 (MVP – priorité immédiate) : Recrutement
+
+Côté candidat
+
+Créer un compte et se connecter.
+
+Consulter les annonces disponibles.
+
+Postuler (formulaire + CV).
+
+Suivre l’état de la candidature.
+
+Côté RH
+
+Publier/modifier les annonces.
+
+Recevoir et visualiser les candidatures.
+
+Gérer le pipeline de recrutement (postulé → en cours → entretien → embauché/refusé).
+
+Exporter les candidatures.
+
+Côté Superadmin
+
+Dashboard : nombre total de candidatures, par offre, par diplôme (Licence, Master, Doctorat).
+
+Statistiques globales et export.
+
+Option IA
+
+Tri automatique des CV et scoring des candidats.
+
+Version 2 : Notes d’entretien + CV
+
+Notes et évaluations par recruteur/manager.
+
+Grilles d’évaluation paramétrables.
+
+Téléversement, stockage et parsing CV avancé.
+
+Matching candidat ↔ offre avec score automatique.
+
+Version 3 : Onboarding
+
+Workflows d’intégration (tâches RH, manager, IT, salarié).
+
+Suivi d’avancement par étapes.
+
+Génération et signature électronique de documents (contrat, NDA).
+
+Notifications automatisées.
+
+Version 4 : Paie
+
+Centralisation des données contractuelles et salariales.
+
+Gestion des variables de paie (primes, absences, heures sup).
+
+Contrôles de complétude dossier.
+
+Export compatible logiciels paie (Sage, ADP, Silae, etc.).
+
+Version 5 : Tâches administratives
+
+Dossier salarié complet (contrat, avenants, documents administratifs).
+
+Gestion des absences/congés.
+
+Génération d’attestations (travail, salaire).
+
+Module de demandes internes (RH, matériel, changement adresse, etc.).
+
+3. Contraintes techniques
+
+Web responsive (desktop, tablette, mobile).
+
+Sécurité : authentification JWT/SSO, RGPD, chiffrement des données.

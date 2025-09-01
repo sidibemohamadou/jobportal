@@ -16,6 +16,8 @@ import CandidateAssignment from "@/pages/CandidateAssignment";
 import CandidateScoring from "@/pages/CandidateScoring";
 import FinalResults from "@/pages/FinalResults";
 import ProfileCompletion from "@/pages/ProfileCompletion";
+import ContractManagement from "@/pages/ContractManagement";
+import HRManagement from "@/pages/HRManagement";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -59,6 +61,8 @@ function Router() {
               <Route path="/admin/assignment" component={CandidateAssignment} />
               <Route path="/admin/scoring" component={CandidateScoring} />
               <Route path="/admin/final-results" component={FinalResults} />
+              <Route path="/contracts" component={ContractManagement} />
+              <Route path="/hr" component={HRManagement} />
               {(user as any)?.role === "admin" && (
                 <Route path="/admin/users" component={AdminDashboard} />
               )}
