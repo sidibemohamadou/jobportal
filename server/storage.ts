@@ -31,6 +31,8 @@ import {
   type InsertHrRequest,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { db } from "./db";
+import { eq, desc, and, or, gte, lte, like, isNull } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (required for Replit Auth)
@@ -62,6 +64,18 @@ export interface IStorage {
   getKPIs(): Promise<any>;
   getApplicationAnalytics(): Promise<any>;
   getJobAnalytics(): Promise<any>;
+  
+  // Enhanced search operations for applications with scoring
+  searchApplicationsByScore(minAutoScore?: number, maxAutoScore?: number, minManualScore?: number, maxManualScore?: number): Promise<Application[]>;
+  getApplicationsByDateRange(startDate: Date, endDate: Date): Promise<Application[]>;
+  
+  // Payroll operations
+  createPayroll(payroll: InsertPayroll): Promise<Payroll>;
+  getPayroll(id: number): Promise<Payroll | undefined>;
+  getPayrollsByEmployee(employeeId: number): Promise<Payroll[]>;
+  getPayrollsByPeriod(period: string): Promise<Payroll[]>;
+  updatePayroll(id: number, data: Partial<Payroll>): Promise<Payroll>;
+  getAllPayrolls(): Promise<Payroll[]>;
   
   // Employee operations
   createEmployee(employee: InsertEmployee): Promise<Employee>;
@@ -758,4 +772,470 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+// Database Storage Implementation
+export class DatabaseStorage implements IStorage {
+  // User operations (required for Replit Auth)
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return user;
+  }
+
+  async updateUser(id: string, updateData: Partial<User>): Promise<User> {
+    const [updated] = await db
+      .update(users)
+      .set({ ...updateData, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    if (!updated) throw new Error("User not found");
+    return updated;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users);
+  }
+
+  async getUsersByRole(role: string): Promise<User[]> {
+    return await db.select().from(users).where(eq(users.role, role));
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    await db.delete(users).where(eq(users.id, id));
+  }
+
+  // Job operations
+  async getAllJobs(): Promise<Job[]> {
+    return await db.select().from(jobs).where(eq(jobs.isActive, 1)).orderBy(desc(jobs.createdAt));
+  }
+
+  async getJob(id: number): Promise<Job | undefined> {
+    const [job] = await db.select().from(jobs).where(eq(jobs.id, id));
+    return job || undefined;
+  }
+
+  async createJob(job: InsertJob): Promise<Job> {
+    const [newJob] = await db.insert(jobs).values(job).returning();
+    return newJob;
+  }
+
+  async searchJobs(query: string, filters: any): Promise<Job[]> {
+    let baseQuery = db.select().from(jobs).where(eq(jobs.isActive, 1));
+    
+    const conditions = [];
+    
+    if (query) {
+      conditions.push(
+        or(
+          like(jobs.title, `%${query}%`),
+          like(jobs.description, `%${query}%`),
+          like(jobs.company, `%${query}%`)
+        )
+      );
+    }
+    
+    if (filters.location) {
+      conditions.push(like(jobs.location, `%${filters.location}%`));
+    }
+    
+    if (filters.contractType && filters.contractType.length > 0) {
+      const contractConditions = filters.contractType.map((type: string) => eq(jobs.contractType, type));
+      conditions.push(or(...contractConditions));
+    }
+    
+    if (conditions.length > 0) {
+      baseQuery = baseQuery.where(and(...conditions));
+    }
+    
+    return await baseQuery.orderBy(desc(jobs.createdAt));
+  }
+
+  // Application operations with enhanced scoring
+  async createApplication(application: InsertApplication, userId: string): Promise<Application> {
+    // Calculate auto-score based on application data
+    const autoScore = await this.calculateAutoScore(application);
+    
+    const [newApp] = await db
+      .insert(applications)
+      .values({ ...application, userId, autoScore })
+      .returning();
+    return newApp;
+  }
+
+  private async calculateAutoScore(application: InsertApplication): Promise<number> {
+    let score = 50; // Base score
+    
+    if (application.cvPath) score += 20;
+    if (application.coverLetter && application.coverLetter.length > 100) score += 15;
+    if (application.motivationLetterPath) score += 15;
+    
+    return Math.min(score, 100);
+  }
+
+  async getApplicationsByUser(userId: string): Promise<Application[]> {
+    return await db.select().from(applications).where(eq(applications.userId, userId)).orderBy(desc(applications.createdAt));
+  }
+
+  async getApplication(id: number): Promise<Application | undefined> {
+    const [app] = await db.select().from(applications).where(eq(applications.id, id));
+    return app || undefined;
+  }
+
+  async updateApplication(id: number, application: UpdateApplication): Promise<Application> {
+    const [updated] = await db
+      .update(applications)
+      .set({ ...application, updatedAt: new Date() })
+      .where(eq(applications.id, id))
+      .returning();
+    if (!updated) throw new Error("Application not found");
+    return updated;
+  }
+
+  async getApplicationsForJob(jobId: number): Promise<Application[]> {
+    return await db.select().from(applications).where(eq(applications.jobId, jobId)).orderBy(desc(applications.createdAt));
+  }
+
+  async getApplicationsByRecruiter(recruiterId: string): Promise<Application[]> {
+    return await db.select().from(applications).where(eq(applications.assignedRecruiter, recruiterId)).orderBy(desc(applications.createdAt));
+  }
+
+  // Enhanced search operations for applications with scoring
+  async searchApplicationsByScore(
+    minAutoScore?: number,
+    maxAutoScore?: number,
+    minManualScore?: number,
+    maxManualScore?: number
+  ): Promise<Application[]> {
+    const conditions = [];
+    
+    if (minAutoScore !== undefined) {
+      conditions.push(gte(applications.autoScore, minAutoScore));
+    }
+    if (maxAutoScore !== undefined) {
+      conditions.push(lte(applications.autoScore, maxAutoScore));
+    }
+    if (minManualScore !== undefined) {
+      conditions.push(gte(applications.manualScore, minManualScore));
+    }
+    if (maxManualScore !== undefined) {
+      conditions.push(lte(applications.manualScore, maxManualScore));
+    }
+    
+    let query = db.select().from(applications);
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+    
+    return await query.orderBy(desc(applications.autoScore), desc(applications.manualScore));
+  }
+
+  async getApplicationsByDateRange(startDate: Date, endDate: Date): Promise<Application[]> {
+    return await db
+      .select()
+      .from(applications)
+      .where(and(
+        gte(applications.createdAt, startDate),
+        lte(applications.createdAt, endDate)
+      ))
+      .orderBy(desc(applications.createdAt));
+  }
+
+  async getRecruiters(): Promise<User[]> {
+    return await db
+      .select()
+      .from(users)
+      .where(
+        or(
+          eq(users.role, "recruiter"),
+          eq(users.role, "hr"),
+          eq(users.role, "admin")
+        )
+      );
+  }
+
+  // Payroll operations
+  async createPayroll(payrollData: InsertPayroll): Promise<Payroll> {
+    const [newPayroll] = await db.insert(payroll).values(payrollData).returning();
+    return newPayroll;
+  }
+
+  async getPayroll(id: number): Promise<Payroll | undefined> {
+    const [payrollEntry] = await db.select().from(payroll).where(eq(payroll.id, id));
+    return payrollEntry || undefined;
+  }
+
+  async getPayrollsByEmployee(employeeId: number): Promise<Payroll[]> {
+    return await db.select().from(payroll).where(eq(payroll.employeeId, employeeId)).orderBy(desc(payroll.period));
+  }
+
+  async getPayrollsByPeriod(period: string): Promise<Payroll[]> {
+    return await db.select().from(payroll).where(eq(payroll.period, period)).orderBy(desc(payroll.createdAt));
+  }
+
+  async updatePayroll(id: number, data: Partial<Payroll>): Promise<Payroll> {
+    const [updated] = await db
+      .update(payroll)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(payroll.id, id))
+      .returning();
+    if (!updated) throw new Error("Payroll not found");
+    return updated;
+  }
+
+  async getAllPayrolls(): Promise<Payroll[]> {
+    return await db.select().from(payroll).orderBy(desc(payroll.period), desc(payroll.createdAt));
+  }
+
+  // Employee operations - implement basic ones needed
+  async createEmployee(employee: InsertEmployee): Promise<Employee> {
+    const [newEmployee] = await db.insert(employees).values(employee).returning();
+    return newEmployee;
+  }
+
+  async getEmployee(id: number): Promise<Employee | undefined> {
+    const [employee] = await db.select().from(employees).where(eq(employees.id, id));
+    return employee || undefined;
+  }
+
+  async getEmployeeByUserId(userId: string): Promise<Employee | undefined> {
+    const [employee] = await db.select().from(employees).where(eq(employees.userId, userId));
+    return employee || undefined;
+  }
+
+  async getAllEmployees(): Promise<Employee[]> {
+    return await db.select().from(employees).orderBy(desc(employees.createdAt));
+  }
+
+  async updateEmployee(id: number, data: Partial<Employee>): Promise<Employee> {
+    const [updated] = await db
+      .update(employees)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(employees.id, id))
+      .returning();
+    if (!updated) throw new Error("Employee not found");
+    return updated;
+  }
+
+  // Contract operations - implement basic ones needed
+  async createContract(contract: InsertContract): Promise<Contract> {
+    const [newContract] = await db.insert(contracts).values(contract).returning();
+    return newContract;
+  }
+
+  async getContract(id: number): Promise<Contract | undefined> {
+    const [contract] = await db.select().from(contracts).where(eq(contracts.id, id));
+    return contract || undefined;
+  }
+
+  async getContractsByEmployee(employeeId: number): Promise<Contract[]> {
+    return await db.select().from(contracts).where(eq(contracts.employeeId, employeeId)).orderBy(desc(contracts.createdAt));
+  }
+
+  async updateContract(id: number, data: Partial<Contract>): Promise<Contract> {
+    const [updated] = await db
+      .update(contracts)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(contracts.id, id))
+      .returning();
+    if (!updated) throw new Error("Contract not found");
+    return updated;
+  }
+
+  async getActiveContracts(): Promise<Contract[]> {
+    return await db.select().from(contracts).where(eq(contracts.status, "active")).orderBy(desc(contracts.createdAt));
+  }
+
+  // Leave operations - implement basic ones needed
+  async createLeaveRequest(request: InsertLeaveRequest): Promise<LeaveRequest> {
+    const [newRequest] = await db.insert(leaveRequests).values(request).returning();
+    return newRequest;
+  }
+
+  async getLeaveRequest(id: number): Promise<LeaveRequest | undefined> {
+    const [request] = await db.select().from(leaveRequests).where(eq(leaveRequests.id, id));
+    return request || undefined;
+  }
+
+  async getLeaveRequestsByEmployee(employeeId: number): Promise<LeaveRequest[]> {
+    return await db.select().from(leaveRequests).where(eq(leaveRequests.employeeId, employeeId)).orderBy(desc(leaveRequests.createdAt));
+  }
+
+  async updateLeaveRequest(id: number, data: Partial<LeaveRequest>): Promise<LeaveRequest> {
+    const [updated] = await db
+      .update(leaveRequests)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(leaveRequests.id, id))
+      .returning();
+    if (!updated) throw new Error("Leave request not found");
+    return updated;
+  }
+
+  async getLeaveBalance(employeeId: number, year: number): Promise<LeaveBalance[]> {
+    return await db
+      .select()
+      .from(leaveBalances)
+      .where(and(
+        eq(leaveBalances.employeeId, employeeId),
+        eq(leaveBalances.year, year)
+      ));
+  }
+
+  // HR Request operations - implement basic ones needed
+  async createHrRequest(request: InsertHrRequest): Promise<HrRequest> {
+    const [newRequest] = await db.insert(hrRequests).values(request).returning();
+    return newRequest;
+  }
+
+  async getHrRequest(id: number): Promise<HrRequest | undefined> {
+    const [request] = await db.select().from(hrRequests).where(eq(hrRequests.id, id));
+    return request || undefined;
+  }
+
+  async getHrRequestsByEmployee(employeeId: number): Promise<HrRequest[]> {
+    return await db.select().from(hrRequests).where(eq(hrRequests.employeeId, employeeId)).orderBy(desc(hrRequests.createdAt));
+  }
+
+  async getAllHrRequests(): Promise<HrRequest[]> {
+    return await db.select().from(hrRequests).orderBy(desc(hrRequests.createdAt));
+  }
+
+  async updateHrRequest(id: number, data: Partial<HrRequest>): Promise<HrRequest> {
+    const [updated] = await db
+      .update(hrRequests)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(hrRequests.id, id))
+      .returning();
+    if (!updated) throw new Error("HR request not found");
+    return updated;
+  }
+
+  // Analytics operations
+  async getKPIs(): Promise<any> {
+    const allApplications = await db.select().from(applications);
+    const allJobs = await db.select().from(jobs).where(eq(jobs.isActive, 1));
+    const allUsers = await db.select().from(users);
+    
+    const candidates = allUsers.filter(u => u.role === 'candidate');
+    const recruiters = allUsers.filter(u => u.role === 'recruiter' || u.role === 'hr');
+    
+    const statusCounts = {
+      pending: allApplications.filter(a => a.status === 'pending').length,
+      reviewed: allApplications.filter(a => a.status === 'reviewed').length,
+      interview: allApplications.filter(a => a.status === 'interview').length,
+      accepted: allApplications.filter(a => a.status === 'accepted').length,
+      rejected: allApplications.filter(a => a.status === 'rejected').length,
+      assigned: allApplications.filter(a => a.status === 'assigned').length,
+      scored: allApplications.filter(a => a.status === 'scored').length,
+    };
+
+    const conversionRate = allApplications.length > 0 
+      ? (statusCounts.accepted / allApplications.length) * 100
+      : 0;
+
+    return {
+      totalApplications: allApplications.length,
+      totalJobs: allJobs.length,
+      totalCandidates: candidates.length,
+      totalRecruiters: recruiters.length,
+      statusCounts,
+      conversionRate,
+      avgProcessingTime: 5,
+      topPerformingJobs: this.getTopJobsFromApplications(allApplications, allJobs)
+    };
+  }
+
+  private getTopJobsFromApplications(applications: Application[], jobs: Job[]) {
+    const jobApplicationCounts = new Map<number, number>();
+    
+    applications.forEach(app => {
+      const count = jobApplicationCounts.get(app.jobId) || 0;
+      jobApplicationCounts.set(app.jobId, count + 1);
+    });
+    
+    return Array.from(jobApplicationCounts.entries())
+      .map(([jobId, count]) => {
+        const job = jobs.find(j => j.id === jobId);
+        return job ? { 
+          title: job.title, 
+          company: job.company, 
+          applications: count 
+        } : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => (b?.applications || 0) - (a?.applications || 0))
+      .slice(0, 3);
+  }
+
+  async getApplicationAnalytics(): Promise<any> {
+    const allApplications = await db.select().from(applications);
+    
+    const monthlyData = [
+      { month: 'Jan', applications: allApplications.filter(a => a.createdAt && a.createdAt.getMonth() === 0).length },
+      { month: 'Fév', applications: allApplications.filter(a => a.createdAt && a.createdAt.getMonth() === 1).length },
+      { month: 'Mar', applications: allApplications.filter(a => a.createdAt && a.createdAt.getMonth() === 2).length },
+    ];
+    
+    const statusData = [
+      { name: 'En attente', value: allApplications.filter(a => a.status === 'pending').length },
+      { name: 'Examinées', value: allApplications.filter(a => a.status === 'reviewed').length },
+      { name: 'Entretiens', value: allApplications.filter(a => a.status === 'interview').length },
+      { name: 'Acceptées', value: allApplications.filter(a => a.status === 'accepted').length },
+      { name: 'Refusées', value: allApplications.filter(a => a.status === 'rejected').length },
+    ].filter(item => item.value > 0);
+    
+    return {
+      monthlyApplications: monthlyData,
+      statusDistribution: statusData,
+      scoreDistribution: this.getScoreDistribution(allApplications)
+    };
+  }
+
+  private getScoreDistribution(applications: Application[]) {
+    const distribution = {
+      '0-20': 0, '21-40': 0, '41-60': 0, '61-80': 0, '81-100': 0
+    };
+    
+    applications.forEach(app => {
+      const score = app.autoScore || 0;
+      if (score <= 20) distribution['0-20']++;
+      else if (score <= 40) distribution['21-40']++;
+      else if (score <= 60) distribution['41-60']++;
+      else if (score <= 80) distribution['61-80']++;
+      else distribution['81-100']++;
+    });
+    
+    return Object.entries(distribution).map(([range, count]) => ({
+      range, count
+    }));
+  }
+
+  async getJobAnalytics(): Promise<any> {
+    const allJobs = await db.select().from(jobs);
+    const allApplications = await db.select().from(applications);
+    
+    const jobPopularity = allJobs.map(job => ({
+      name: job.title.length > 20 ? job.title.substring(0, 20) + '...' : job.title,
+      applications: allApplications.filter(a => a.jobId === job.id).length,
+    })).sort((a, b) => b.applications - a.applications).slice(0, 5);
+    
+    return {
+      jobPopularity,
+    };
+  }
+}
+
+// Use DatabaseStorage instead of MemStorage
+export const storage = new DatabaseStorage();

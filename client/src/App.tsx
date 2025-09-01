@@ -19,6 +19,7 @@ import ProfileCompletion from "@/pages/ProfileCompletion";
 import ContractManagement from "@/pages/ContractManagement";
 import HRManagement from "@/pages/HRManagement";
 import UserManagement from "@/pages/UserManagement";
+import PayrollManagement from "@/pages/PayrollManagement";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -64,6 +65,7 @@ function Router() {
               <Route path="/admin/final-results" component={FinalResults} />
               <Route path="/contracts" component={ContractManagement} />
               <Route path="/hr" component={HRManagement} />
+              <Route path="/admin/payroll" component={PayrollManagement} />
               {(user as any)?.role === "admin" && (
                 <Route path="/admin/users" component={UserManagement} />
               )}

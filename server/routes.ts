@@ -312,6 +312,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Enhanced application search routes
+  app.get("/api/applications/search-by-score", isAuthenticated, async (req: any, res) => {
+    try {
+      const { minAutoScore, maxAutoScore, minManualScore, maxManualScore } = req.query;
+      const applications = await storage.searchApplicationsByScore(
+        minAutoScore ? parseInt(minAutoScore as string) : undefined,
+        maxAutoScore ? parseInt(maxAutoScore as string) : undefined,
+        minManualScore ? parseInt(minManualScore as string) : undefined,
+        maxManualScore ? parseInt(maxManualScore as string) : undefined
+      );
+      res.json(applications);
+    } catch (error) {
+      console.error("Error searching applications by score:", error);
+      res.status(500).json({ error: "Failed to search applications" });
+    }
+  });
+
+  app.get("/api/applications/search-by-date", isAuthenticated, async (req: any, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      if (!startDate || !endDate) {
+        return res.status(400).json({ error: "Start and end dates are required" });
+      }
+      const applications = await storage.getApplicationsByDateRange(
+        new Date(startDate as string),
+        new Date(endDate as string)
+      );
+      res.json(applications);
+    } catch (error) {
+      console.error("Error searching applications by date:", error);
+      res.status(500).json({ error: "Failed to search applications" });
+    }
+  });
+
+  // Payroll management routes
+  app.post("/api/payroll", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || !['hr', 'admin'].includes(user.role)) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const payrollData = req.body;
+      const newPayroll = await storage.createPayroll(payrollData);
+      res.status(201).json(newPayroll);
+    } catch (error) {
+      console.error("Error creating payroll:", error);
+      res.status(500).json({ error: "Failed to create payroll" });
+    }
+  });
+
+  app.get("/api/payroll", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || !['hr', 'admin'].includes(user.role)) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const payrolls = await storage.getAllPayrolls();
+      res.json(payrolls);
+    } catch (error) {
+      console.error("Error fetching payrolls:", error);
+      res.status(500).json({ error: "Failed to fetch payrolls" });
+    }
+  });
+
+  app.put("/api/payroll/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || !['hr', 'admin'].includes(user.role)) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const payroll = await storage.updatePayroll(parseInt(req.params.id), req.body);
+      res.json(payroll);
+    } catch (error) {
+      console.error("Error updating payroll:", error);
+      res.status(500).json({ error: "Failed to update payroll" });
+    }
+  });
+
+  app.get("/api/payroll/employee/:employeeId", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      const user = await storage.getUser(userId);
+      
+      if (!user || !['hr', 'admin'].includes(user.role)) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+
+      const payrolls = await storage.getPayrollsByEmployee(parseInt(req.params.employeeId));
+      res.json(payrolls);
+    } catch (error) {
+      console.error("Error fetching employee payrolls:", error);
+      res.status(500).json({ error: "Failed to fetch employee payrolls" });
+    }
+  });
+
   // Admin KPIs and analytics
   app.get("/api/admin/kpis", isAuthenticated, requireAdminRole, async (req, res) => {
     try {
