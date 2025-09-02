@@ -117,6 +117,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/admin/jobs/:id", requireAuth, requireAdminRole, async (req, res) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      if (isNaN(jobId)) {
+        return res.status(400).json({ message: "ID d'emploi invalide" });
+      }
+
+      // Validation partielle des données avec le schéma Zod
+      const validatedData = insertJobSchema.partial().parse(req.body);
+      
+      // Mise à jour de l'emploi via le storage
+      const updatedJob = await storage.updateJob(jobId, validatedData);
+      
+      if (!updatedJob) {
+        return res.status(404).json({ message: "Emploi non trouvé" });
+      }
+      
+      res.json(updatedJob);
+    } catch (error: any) {
+      console.error("Error updating job:", error);
+      
+      if (error?.name === 'ZodError') {
+        return res.status(400).json({ 
+          message: "Données invalides", 
+          errors: error.errors 
+        });
+      }
+      
+      res.status(500).json({ message: "Failed to update job" });
+    }
+  });
+
+  app.delete("/api/admin/jobs/:id", requireAuth, requireAdminRole, async (req, res) => {
+    try {
+      const jobId = parseInt(req.params.id);
+      if (isNaN(jobId)) {
+        return res.status(400).json({ message: "ID d'emploi invalide" });
+      }
+
+      const deleted = await storage.deleteJob(jobId);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Emploi non trouvé" });
+      }
+      
+      res.json({ message: "Emploi supprimé avec succès" });
+    } catch (error: any) {
+      console.error("Error deleting job:", error);
+      res.status(500).json({ message: "Failed to delete job" });
+    }
+  });
+
   app.get("/api/admin/applications", requireAuth, requireAdminRole, async (req, res) => {
     try {
       const applications: any[] = []; // Mock data for now

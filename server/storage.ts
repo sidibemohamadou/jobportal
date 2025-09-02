@@ -75,6 +75,8 @@ export interface IStorage {
   getAllJobs(): Promise<Job[]>;
   getJob(id: number): Promise<Job | undefined>;
   createJob(job: InsertJob): Promise<Job>;
+  updateJob(id: number, job: Partial<InsertJob>): Promise<Job | undefined>;
+  deleteJob(id: number): Promise<boolean>;
   searchJobs(query: string, filters: any): Promise<Job[]>;
   
   // Application operations
@@ -599,6 +601,25 @@ export class MemStorage implements IStorage {
     };
     this.jobs.set(job.id, job);
     return job;
+  }
+
+  async updateJob(id: number, updateData: Partial<InsertJob>): Promise<Job | undefined> {
+    const existingJob = this.jobs.get(id);
+    if (!existingJob) {
+      return undefined;
+    }
+
+    const updatedJob: Job = {
+      ...existingJob,
+      ...updateData,
+      updatedAt: new Date(),
+    };
+    this.jobs.set(id, updatedJob);
+    return updatedJob;
+  }
+
+  async deleteJob(id: number): Promise<boolean> {
+    return this.jobs.delete(id);
   }
 
   async searchJobs(query: string, filters: any): Promise<Job[]> {
@@ -1247,6 +1268,20 @@ export class DatabaseStorage implements IStorage {
   async createJob(job: InsertJob): Promise<Job> {
     const [newJob] = await db.insert(jobs).values(job).returning();
     return newJob;
+  }
+
+  async updateJob(id: number, updateData: Partial<InsertJob>): Promise<Job | undefined> {
+    const [updatedJob] = await db
+      .update(jobs)
+      .set({ ...updateData, updatedAt: new Date() })
+      .where(eq(jobs.id, id))
+      .returning();
+    return updatedJob || undefined;
+  }
+
+  async deleteJob(id: number): Promise<boolean> {
+    const result = await db.delete(jobs).where(eq(jobs.id, id));
+    return (result.rowCount || 0) > 0;
   }
 
   async searchJobs(query: string, filters: any): Promise<Job[]> {
