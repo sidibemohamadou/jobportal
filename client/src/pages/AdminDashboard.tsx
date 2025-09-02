@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +53,7 @@ const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4'
 
 export default function AdminDashboard() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('overview');
   const [skills, setSkills] = useState<string[]>(['']);
   const [jobTitle, setJobTitle] = useState('');
@@ -80,6 +83,50 @@ export default function AdminDashboard() {
   
   const { data: jobAnalytics, isLoading: jobAnalyticsLoading } = useQuery({
     queryKey: ["/api/admin/analytics/jobs"],
+  });
+
+  // Mutation pour créer un nouvel emploi
+  const createJobMutation = useMutation({
+    mutationFn: async (jobData: {
+      title: string;
+      company: string;
+      location: string;
+      description: string;
+      requirements?: string;
+      salary?: string;
+      contractType: string;
+      experienceLevel?: string;
+      skills?: string[];
+    }) => {
+      const response = await fetch('/api/admin/jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...jobData,
+          isActive: true
+        })
+      });
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || 'Erreur lors de la création de l\'offre');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/jobs"] });
+      resetForm();
+      toast({
+        title: "Succès",
+        description: "L'offre d'emploi a été créée avec succès",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erreur",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
   });
 
   const handleLogout = () => {
@@ -123,6 +170,53 @@ export default function AdminDashboard() {
     experienceLevel: experienceLevel,
     skills: skills.filter(skill => skill.trim() !== '')
   });
+
+  const handleCreateJob = () => {
+    // Validation des champs requis
+    if (!jobTitle.trim()) {
+      toast({
+        title: "Erreur de validation",
+        description: "Le titre du poste est obligatoire",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!company.trim()) {
+      toast({
+        title: "Erreur de validation", 
+        description: "Le nom de l'entreprise est obligatoire",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!location.trim()) {
+      toast({
+        title: "Erreur de validation",
+        description: "La localisation est obligatoire",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!description.trim()) {
+      toast({
+        title: "Erreur de validation",
+        description: "La description est obligatoire",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!contractType) {
+      toast({
+        title: "Erreur de validation",
+        description: "Le type de contrat est obligatoire",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const jobData = previewJob();
+    createJobMutation.mutate(jobData);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -568,9 +662,13 @@ export default function AdminDashboard() {
                       <X className="h-4 w-4 mr-2" />
                       Réinitialiser
                     </Button>
-                    <Button>
+                    <Button 
+                      onClick={handleCreateJob}
+                      disabled={createJobMutation.isPending}
+                      data-testid="button-create-job"
+                    >
                       <CheckCircle className="h-4 w-4 mr-2" />
-                      Créer l'offre
+                      {createJobMutation.isPending ? 'Création...' : 'Créer l\'offre'}
                     </Button>
                   </div>
                 </CardContent>

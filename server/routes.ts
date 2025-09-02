@@ -2,6 +2,7 @@ import { Express } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
 import { registerAuthRoutes } from "./authRoutes";
+import { insertJobSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const { createServer } = await import("http");
@@ -90,6 +91,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching admin jobs:", error);
       res.status(500).json({ message: "Failed to fetch jobs" });
+    }
+  });
+
+  app.post("/api/admin/jobs", requireAuth, requireAdminRole, async (req, res) => {
+    try {
+      // Validation des données avec le schéma Zod
+      const validatedData = insertJobSchema.parse(req.body);
+      
+      // Création de l'emploi via le storage
+      const newJob = await storage.createJob(validatedData);
+      
+      res.status(201).json(newJob);
+    } catch (error: any) {
+      console.error("Error creating job:", error);
+      
+      if (error?.name === 'ZodError') {
+        return res.status(400).json({ 
+          message: "Données invalides", 
+          errors: error.errors 
+        });
+      }
+      
+      res.status(500).json({ message: "Failed to create job" });
     }
   });
 
