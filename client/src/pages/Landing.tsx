@@ -8,13 +8,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { LanguageSelector } from "@/components/LanguageSelector";
 import { JobCard } from "@/components/JobCard";
 import { 
-  Briefcase, 
+  Plane, 
   Search, 
   MapPin, 
   Menu,
   Linkedin,
   Twitter,
-  Facebook
+  Facebook,
+  Globe,
+  Users,
+  TrendingUp,
+  Shield
 } from "lucide-react";
 import { t } from "@/lib/i18n";
 import type { Job } from "@shared/schema";
@@ -85,8 +89,8 @@ export default function Landing() {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-8">
               <div className="flex items-center space-x-2">
-                <Briefcase className="h-8 w-8 text-primary" />
-                <span className="text-xl font-bold text-foreground">JobPortal</span>
+                <Plane className="h-8 w-8 text-primary" />
+                <span className="text-xl font-bold text-foreground">AeroRecrutement</span>
               </div>
               <nav className="hidden md:flex space-x-6">
                 <a 
@@ -128,14 +132,46 @@ export default function Landing() {
       </header>
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-b from-background to-muted py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6" data-testid="text-hero-title">
-            {t('hero_title')}
+      <section className="bg-gradient-to-br from-background via-accent/10 to-secondary/10 py-20 relative overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute top-10 left-10 w-8 h-8 border-2 border-primary rotate-45"></div>
+          <div className="absolute top-20 right-20 w-6 h-6 border-2 border-secondary rotate-12"></div>
+          <div className="absolute bottom-20 left-20 w-10 h-10 border-2 border-accent rotate-45"></div>
+          <div className="absolute bottom-10 right-10 w-4 h-4 border-2 border-primary rotate-12"></div>
+        </div>
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+          <div className="flex items-center justify-center mb-6 space-x-4">
+            <Globe className="h-8 w-8 text-secondary" />
+            <Plane className="h-12 w-12 text-primary plane-path" />
+            <Users className="h-8 w-8 text-accent" />
+          </div>
+          
+          <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6" data-testid="text-hero-title">
+            <span className="text-primary">Carrières Aéroportuaires</span><br />
+            <span className="text-secondary">en Guinée-Bissau</span>
           </h1>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto" data-testid="text-hero-subtitle">
-            {t('hero_subtitle')}
+          
+          <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto" data-testid="text-hero-subtitle">
+            Découvrez les opportunités d'emploi dans le secteur aéroportuaire et de l'aviation. 
+            Rejoignez les équipes qui connectent la Guinée-Bissau au monde.
           </p>
+          
+          <div className="flex items-center justify-center space-x-8 mb-8 text-sm text-muted-foreground">
+            <div className="flex items-center space-x-2">
+              <Shield className="h-5 w-5 text-primary" />
+              <span>Emplois Sécurisés</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <TrendingUp className="h-5 w-5 text-secondary" />
+              <span>Croissance Garantie</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Globe className="h-5 w-5 text-accent" />
+              <span>Connexion Internationale</span>
+            </div>
+          </div>
           
           {/* Job Search Form */}
           <Card className="max-w-4xl mx-auto shadow-lg">
@@ -291,11 +327,11 @@ export default function Landing() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
               <div className="flex items-center space-x-2 mb-4">
-                <Briefcase className="h-6 w-6 text-primary" />
-                <span className="text-lg font-bold text-foreground">JobPortal</span>
+                <Plane className="h-6 w-6 text-primary" />
+                <span className="text-lg font-bold text-foreground">AeroRecrutement</span>
               </div>
               <p className="text-muted-foreground text-sm">
-                Plateforme de recrutement moderne pour connecter les talents aux opportunités.
+                Plateforme de recrutement dédiée au secteur aéroportuaire et de l'aviation en Guinée-Bissau.
               </p>
             </div>
             
