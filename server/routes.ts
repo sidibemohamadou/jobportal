@@ -696,6 +696,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Onboarding Analytics endpoint
+  app.get("/api/onboarding/analytics", isAuthenticated, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'hr')) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const analytics = await storage.getOnboardingAnalytics();
+      res.json(analytics);
+    } catch (error) {
+      console.error("Error fetching onboarding analytics:", error);
+      res.status(500).json({ message: "Failed to fetch onboarding analytics" });
+    }
+  });
+
+  // Process Templates endpoint
+  app.get("/api/onboarding/templates", isAuthenticated, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'hr')) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const templates = await storage.getOnboardingProcessTemplates();
+      res.json(templates);
+    } catch (error) {
+      console.error("Error fetching process templates:", error);
+      res.status(500).json({ message: "Failed to fetch process templates" });
+    }
+  });
+
+  // Create process from template
+  app.post("/api/onboarding/templates/:templateId/create", isAuthenticated, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'hr')) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const { templateId } = req.params;
+      const { customName } = req.body;
+      
+      const templates = await storage.getOnboardingProcessTemplates();
+      const template = templates.find(t => t.id === parseInt(templateId));
+      
+      if (!template) {
+        return res.status(404).json({ message: "Template not found" });
+      }
+      
+      // Créer le processus basé sur le template
+      const processData = {
+        name: customName || template.name,
+        description: template.description,
+        department: template.department,
+        estimatedDuration: template.estimatedDuration,
+        createdBy: req.user.claims.sub
+      };
+      
+      const newProcess = await storage.createOnboardingProcess(processData);
+      
+      // Créer les étapes basées sur le template
+      if ((template as any).steps) {
+        for (let i = 0; i < (template as any).steps.length; i++) {
+          const step = (template as any).steps[i];
+          await storage.createOnboardingStep({
+            processId: newProcess.id,
+            stepNumber: i + 1,
+            title: step.title,
+            description: `Étape ${step.category} - ${step.title}`,
+            category: step.category,
+            isRequired: true,
+            estimatedDuration: step.duration,
+            assignedRole: currentUser.role === 'admin' ? 'admin' : 'hr'
+          });
+        }
+      }
+      
+      res.status(201).json(newProcess);
+    } catch (error) {
+      console.error("Error creating process from template:", error);
+      res.status(500).json({ message: "Failed to create process from template" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

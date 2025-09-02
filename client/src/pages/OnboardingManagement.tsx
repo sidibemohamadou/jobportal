@@ -22,8 +22,31 @@ import {
   Plane,
   Settings,
   FileText,
-  Calendar
+  Calendar,
+  BarChart3,
+  TrendingUp,
+  Award,
+  Star,
+  Copy,
+  Zap
 } from "lucide-react";
+import {
+  LineChart,
+  Line,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  Legend
+} from 'recharts';
 
 interface OnboardingProcess {
   id: number;
@@ -59,11 +82,26 @@ interface CandidateOnboarding {
   notes: string;
 }
 
+// Helper function to get department icons
+const getDepartmentIcon = (department: string) => {
+  switch (department.toLowerCase()) {
+    case 'aviation':
+      return <Plane className="h-5 w-5 text-blue-500" />;
+    case 'sécurité':
+      return <Settings className="h-5 w-5 text-red-500" />;
+    case 'administration':
+      return <FileText className="h-5 w-5 text-green-500" />;
+    default:
+      return <Users className="h-5 w-5 text-gray-500" />;
+  }
+};
+
 export default function OnboardingManagement() {
   const [newProcessOpen, setNewProcessOpen] = useState(false);
   const [newStepOpen, setNewStepOpen] = useState(false);
   const [selectedProcess, setSelectedProcess] = useState<number | null>(null);
   const [newCandidateOpen, setNewCandidateOpen] = useState(false);
+  const [templatesDialogOpen, setTemplatesDialogOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -75,6 +113,16 @@ export default function OnboardingManagement() {
   // Fetch all users for candidate selection
   const { data: users = [] } = useQuery({
     queryKey: ["/api/users"],
+  });
+
+  // Fetch onboarding analytics
+  const { data: analytics, isLoading: analyticsLoading } = useQuery({
+    queryKey: ["/api/onboarding/analytics"],
+  });
+
+  // Fetch process templates
+  const { data: templates = [] } = useQuery({
+    queryKey: ["/api/onboarding/templates"],
   });
 
   // Create process mutation
@@ -133,6 +181,27 @@ export default function OnboardingManagement() {
       toast({
         title: "Erreur",
         description: "Erreur lors du démarrage de l'onboarding.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Create process from template mutation
+  const createFromTemplateMutation = useMutation({
+    mutationFn: async ({ templateId, customName }: { templateId: number; customName?: string }) =>
+      apiRequest("POST", `/api/onboarding/templates/${templateId}/create`, { customName }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/onboarding/processes"] });
+      setTemplatesDialogOpen(false);
+      toast({
+        title: "Processus créé",
+        description: "Le processus a été créé avec succès à partir du template.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erreur",
+        description: "Erreur lors de la création du processus.",
         variant: "destructive",
       });
     },
@@ -378,11 +447,233 @@ export default function OnboardingManagement() {
           </div>
         </div>
 
-        <Tabs defaultValue="processes" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="processes">Processus d'Onboarding</TabsTrigger>
-            <TabsTrigger value="candidates">Candidats en Onboarding</TabsTrigger>
+        <Tabs defaultValue="analytics" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="analytics">Analytiques</TabsTrigger>
+            <TabsTrigger value="processes">Processus</TabsTrigger>
+            <TabsTrigger value="templates">Templates</TabsTrigger>
+            <TabsTrigger value="candidates">Candidats</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="analytics" className="space-y-6">
+            {analyticsLoading ? (
+              <div className="flex items-center justify-center h-64">
+                <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+              </div>
+            ) : analytics ? (
+              <>
+                {/* Overview Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Total Onboardings</p>
+                          <p className="text-2xl font-bold">{analytics.overview.totalOnboardings}</p>
+                        </div>
+                        <Users className="h-8 w-8 text-blue-500" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Taux de Réussite</p>
+                          <p className="text-2xl font-bold">{analytics.overview.completionRate}%</p>
+                        </div>
+                        <Award className="h-8 w-8 text-green-500" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Temps Moyen</p>
+                          <p className="text-2xl font-bold">{analytics.overview.averageCompletionTime} jours</p>
+                        </div>
+                        <Clock className="h-8 w-8 text-orange-500" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">En Cours</p>
+                          <p className="text-2xl font-bold">{analytics.overview.inProgressOnboardings}</p>
+                        </div>
+                        <TrendingUp className="h-8 w-8 text-purple-500" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Charts Section */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Monthly Progress Chart */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Évolution Mensuelle</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <LineChart data={analytics.monthlyProgress}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="month" />
+                          <YAxis />
+                          <Tooltip />
+                          <Legend />
+                          <Line 
+                            type="monotone" 
+                            dataKey="started" 
+                            stroke="#8884d8" 
+                            name="Démarrés"
+                            strokeWidth={2}
+                          />
+                          <Line 
+                            type="monotone" 
+                            dataKey="completed" 
+                            stroke="#82ca9d" 
+                            name="Terminés"
+                            strokeWidth={2}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+
+                  {/* Department Performance */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Performance par Département</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={analytics.departmentStats}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="department" />
+                          <YAxis />
+                          <Tooltip />
+                          <Legend />
+                          <Bar dataKey="total" fill="#8884d8" name="Total" />
+                          <Bar dataKey="completed" fill="#82ca9d" name="Terminés" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Step Performance */}
+                {analytics.stepPerformance && analytics.stepPerformance.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Étapes à Améliorer</CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        Étapes avec les taux de réussite les plus faibles
+                      </p>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {analytics.stepPerformance.map((step: any, index: number) => (
+                          <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                            <div className="flex items-center space-x-3">
+                              <Badge variant="outline">{step.category}</Badge>
+                              <span className="font-medium">{step.stepTitle}</span>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm text-muted-foreground">
+                                {step.totalCompletions} complétions
+                              </span>
+                              <Badge variant={step.completionRate < 70 ? "destructive" : "default"}>
+                                {step.completionRate}%
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </>
+            ) : (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <BarChart3 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">Aucune donnée analytique disponible</p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="templates" className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">Templates de Processus</h2>
+                <p className="text-muted-foreground">Utilisez des templates prédéfinis pour créer rapidement des processus</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {templates.map((template: any) => (
+                <Card key={template.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        {getDepartmentIcon(template.department)}
+                        <CardTitle className="text-lg">{template.name}</CardTitle>
+                      </div>
+                      <Badge variant="secondary">Template</Badge>
+                    </div>
+                  </CardHeader>
+                  
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground">{template.description}</p>
+                    
+                    <div className="flex items-center justify-between text-sm">
+                      <div className="flex items-center space-x-2">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <span>{template.estimatedDuration} jours</span>
+                      </div>
+                      <Badge variant="outline">{template.department}</Badge>
+                    </div>
+                    
+                    {(template as any).steps && (
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium">Étapes incluses :</p>
+                        <div className="space-y-1">
+                          {(template as any).steps.slice(0, 3).map((step: any, index: number) => (
+                            <div key={index} className="flex items-center space-x-2 text-xs">
+                              <div className="w-1 h-1 bg-primary rounded-full" />
+                              <span className="text-muted-foreground">{step.title}</span>
+                            </div>
+                          ))}
+                          {(template as any).steps.length > 3 && (
+                            <p className="text-xs text-muted-foreground">
+                              +{(template as any).steps.length - 3} autres étapes
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <Button 
+                      onClick={() => createFromTemplateMutation.mutate({ templateId: template.id })}
+                      disabled={createFromTemplateMutation.isPending}
+                      className="w-full"
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      {createFromTemplateMutation.isPending ? "Création..." : "Utiliser ce Template"}
+                    </Button>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
 
           <TabsContent value="processes" className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

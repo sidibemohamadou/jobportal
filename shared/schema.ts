@@ -294,6 +294,30 @@ export const onboardingStepCompletions = pgTable("onboarding_step_completions", 
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Onboarding notifications
+export const onboardingNotifications = pgTable("onboarding_notifications", {
+  id: serial("id").primaryKey(),
+  candidateOnboardingId: integer("candidate_onboarding_id").references(() => candidateOnboarding.id).notNull(),
+  recipientId: varchar("recipient_id", { length: 255 }).notNull(), // User ID
+  type: varchar("type", { length: 50 }).notNull(), // step_completed, step_overdue, process_completed, reminder
+  title: varchar("title", { length: 255 }).notNull(),
+  message: text("message").notNull(),
+  isRead: boolean("is_read").default(false),
+  relatedStepId: integer("related_step_id").references(() => onboardingSteps.id),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+// Onboarding communications
+export const onboardingCommunications = pgTable("onboarding_communications", {
+  id: serial("id").primaryKey(),
+  candidateOnboardingId: integer("candidate_onboarding_id").references(() => candidateOnboarding.id).notNull(),
+  senderId: varchar("sender_id", { length: 255 }).notNull(),
+  senderRole: varchar("sender_role", { length: 50 }).notNull(), // candidate, mentor, admin
+  message: text("message").notNull(),
+  attachments: text("attachments").array(),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
 // Export schemas for validation
 export const insertJobSchema = createInsertSchema(jobs).omit({
   id: true,
@@ -371,6 +395,16 @@ export const insertStepCompletionSchema = createInsertSchema(onboardingStepCompl
   updatedAt: true,
 });
 
+export const insertOnboardingNotificationSchema = createInsertSchema(onboardingNotifications).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertOnboardingCommunicationSchema = createInsertSchema(onboardingCommunications).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Export types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -404,3 +438,7 @@ export type CandidateOnboarding = typeof candidateOnboarding.$inferSelect;
 export type InsertCandidateOnboarding = z.infer<typeof insertCandidateOnboardingSchema>;
 export type OnboardingStepCompletion = typeof onboardingStepCompletions.$inferSelect;
 export type InsertStepCompletion = z.infer<typeof insertStepCompletionSchema>;
+export type OnboardingNotification = typeof onboardingNotifications.$inferSelect;
+export type InsertOnboardingNotification = z.infer<typeof insertOnboardingNotificationSchema>;
+export type OnboardingCommunication = typeof onboardingCommunications.$inferSelect;
+export type InsertOnboardingCommunication = z.infer<typeof insertOnboardingCommunicationSchema>;

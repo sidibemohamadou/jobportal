@@ -138,6 +138,10 @@ export interface IStorage {
   
   // Employee ID generation
   generateEmployeeId(firstName: string, lastName: string): Promise<string>;
+  
+  // Onboarding analytics
+  getOnboardingAnalytics(): Promise<any>;
+  getOnboardingProcessTemplates(): Promise<OnboardingProcess[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -1438,6 +1442,198 @@ export class DatabaseStorage implements IStorage {
       status,
       actualCompletionDate: progress === 100 ? new Date().toISOString().split('T')[0] : undefined
     });
+  }
+
+  async getOnboardingAnalytics(): Promise<any> {
+    const allOnboardings = await db.select().from(candidateOnboarding);
+    const allProcesses = await db.select().from(onboardingProcesses);
+    const allCompletions = await db.select().from(onboardingStepCompletions);
+    
+    // Calcul des métriques de base
+    const totalOnboardings = allOnboardings.length;
+    const completedOnboardings = allOnboardings.filter(o => o.status === 'completed').length;
+    const inProgressOnboardings = allOnboardings.filter(o => o.status === 'in_progress').length;
+    const pendingOnboardings = allOnboardings.filter(o => o.status === 'pending').length;
+    
+    // Taux de completion
+    const completionRate = totalOnboardings > 0 ? Math.round((completedOnboardings / totalOnboardings) * 100) : 0;
+    
+    // Temps moyen de completion
+    const completedWithDates = allOnboardings.filter(o => 
+      o.status === 'completed' && o.startDate && o.actualCompletionDate
+    );
+    
+    const averageCompletionTime = completedWithDates.length > 0 
+      ? Math.round(completedWithDates.reduce((avg, o) => {
+          const start = new Date(o.startDate);
+          const end = new Date(o.actualCompletionDate!);
+          const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+          return avg + days;
+        }, 0) / completedWithDates.length)
+      : 0;
+    
+    // Distribution par département
+    const departmentStats = allProcesses.reduce((acc, process) => {
+      const processOnboardings = allOnboardings.filter(o => o.processId === process.id);
+      if (!acc[process.department]) {
+        acc[process.department] = { total: 0, completed: 0 };
+      }
+      acc[process.department].total += processOnboardings.length;
+      acc[process.department].completed += processOnboardings.filter(o => o.status === 'completed').length;
+      return acc;
+    }, {} as any);
+    
+    // Évolution mensuelle
+    const monthlyData = this.getMonthlyOnboardingData(allOnboardings);
+    
+    // Top étapes problématiques (qui prennent le plus de temps)
+    const stepStats = await this.getStepAnalytics(allCompletions);
+    
+    return {
+      overview: {
+        totalOnboardings,
+        completedOnboardings,
+        inProgressOnboardings,
+        pendingOnboardings,
+        completionRate,
+        averageCompletionTime
+      },
+      departmentStats: Object.entries(departmentStats).map(([department, stats]: [string, any]) => ({
+        department,
+        total: stats.total,
+        completed: stats.completed,
+        completionRate: stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0
+      })),
+      monthlyProgress: monthlyData,
+      stepPerformance: stepStats
+    };
+  }
+
+  private getMonthlyOnboardingData(onboardings: CandidateOnboarding[]) {
+    const last6Months = [];
+    const now = new Date();
+    
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthName = date.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' });
+      
+      const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
+      const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
+      
+      const started = onboardings.filter(o => {
+        const startDate = new Date(o.startDate);
+        return startDate >= monthStart && startDate <= monthEnd;
+      }).length;
+      
+      const completed = onboardings.filter(o => {
+        if (!o.actualCompletionDate) return false;
+        const completionDate = new Date(o.actualCompletionDate);
+        return completionDate >= monthStart && completionDate <= monthEnd;
+      }).length;
+      
+      last6Months.push({
+        month: monthName,
+        started,
+        completed
+      });
+    }
+    
+    return last6Months;
+  }
+  
+  private async getStepAnalytics(completions: OnboardingStepCompletion[]) {
+    const stepGroups = completions.reduce((acc, completion) => {
+      if (!acc[completion.stepId]) {
+        acc[completion.stepId] = {
+          completions: [],
+          totalTime: 0,
+          count: 0
+        };
+      }
+      
+      if (completion.status === 'completed' && completion.completionDate) {
+        acc[completion.stepId].completions.push(completion);
+        acc[completion.stepId].count++;
+      }
+      
+      return acc;
+    }, {} as any);
+    
+    const stepAnalytics = [];
+    for (const [stepId, data] of Object.entries(stepGroups) as [string, any][]) {
+      const step = await db.select().from(onboardingSteps).where(eq(onboardingSteps.id, parseInt(stepId))).limit(1);
+      if (step.length > 0) {
+        const completionRate = (data.count / completions.filter(c => c.stepId === parseInt(stepId)).length) * 100;
+        stepAnalytics.push({
+          stepTitle: step[0].title,
+          category: step[0].category,
+          completionRate: Math.round(completionRate),
+          totalCompletions: data.count
+        });
+      }
+    }
+    
+    return stepAnalytics.sort((a, b) => a.completionRate - b.completionRate).slice(0, 5);
+  }
+
+  async getOnboardingProcessTemplates(): Promise<OnboardingProcess[]> {
+    // Retourner les templates par défaut basés sur les départements courants
+    const templates = [
+      {
+        id: 0,
+        name: "Onboarding Personnel Aviation",
+        description: "Processus complet pour l'intégration du personnel navigant et technique aéronautique",
+        department: "Aviation",
+        isActive: true,
+        estimatedDuration: 21,
+        createdAt: new Date().toISOString(),
+        createdBy: "system",
+        updatedAt: new Date().toISOString(),
+        steps: [
+          { title: "Accueil et présentation", category: "administrative", duration: 2 },
+          { title: "Formation sécurité aéroportuaire", category: "formation", duration: 8 },
+          { title: "Certification IATA", category: "technique", duration: 16 },
+          { title: "Formation équipements", category: "technique", duration: 12 },
+          { title: "Évaluation pratique", category: "formation", duration: 4 }
+        ]
+      },
+      {
+        id: 1,
+        name: "Onboarding Sécurité Aéroport",
+        description: "Formation spécialisée pour le personnel de sécurité aéroportuaire",
+        department: "Sécurité",
+        isActive: true,
+        estimatedDuration: 14,
+        createdAt: new Date().toISOString(),
+        createdBy: "system",
+        updatedAt: new Date().toISOString(),
+        steps: [
+          { title: "Procédures de sécurité", category: "formation", duration: 8 },
+          { title: "Contrôle passagers", category: "technique", duration: 12 },
+          { title: "Gestion des incidents", category: "formation", duration: 6 },
+          { title: "Certification sécurité", category: "administrative", duration: 4 }
+        ]
+      },
+      {
+        id: 2,
+        name: "Onboarding Administration",
+        description: "Intégration pour les postes administratifs et de gestion",
+        department: "Administration",
+        isActive: true,
+        estimatedDuration: 10,
+        createdAt: new Date().toISOString(),
+        createdBy: "system",
+        updatedAt: new Date().toISOString(),
+        steps: [
+          { title: "Présentation de l'entreprise", category: "administrative", duration: 2 },
+          { title: "Systèmes informatiques", category: "technique", duration: 4 },
+          { title: "Procédures administratives", category: "formation", duration: 6 },
+          { title: "Évaluation des compétences", category: "formation", duration: 2 }
+        ]
+      }
+    ];
+    
+    return templates as OnboardingProcess[];
   }
 }
 
