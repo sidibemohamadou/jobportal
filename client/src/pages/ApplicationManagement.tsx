@@ -15,8 +15,16 @@ import {
   Calendar,
   FileText,
   Briefcase,
-  LogOut
+  LogOut,
+  Edit,
+  Trash2,
+  X,
+  Plus
 } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "wouter";
 import { formatDistanceToNow } from "date-fns";
@@ -24,9 +32,20 @@ import { fr } from "date-fns/locale";
 
 export default function ApplicationManagement() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const queryClient = useQueryClient();
+  
+  // État pour la modal d'édition
+  const [editingApplication, setEditingApplication] = useState<any>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editForm, setEditForm] = useState({
+    status: "",
+    assignedRecruiter: "",
+    manualScore: "",
+    scoreNotes: ""
+  });
 
   const { data: applications = [], isLoading } = useQuery({
     queryKey: ["/api/admin/applications"],
@@ -44,6 +63,64 @@ export default function ApplicationManagement() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/applications"] });
+      toast({
+        title: "Succès",
+        description: "Le statut de la candidature a été mis à jour",
+      });
+    }
+  });
+
+  const updateApplicationMutation = useMutation({
+    mutationFn: async ({ applicationId, data }: { applicationId: number, data: any }) => {
+      const response = await fetch(`/api/admin/applications/${applicationId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || 'Erreur lors de la mise à jour');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/applications"] });
+      setIsEditDialogOpen(false);
+      toast({
+        title: "Succès",
+        description: "La candidature a été mise à jour avec succès",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erreur",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const deleteApplicationMutation = useMutation({
+    mutationFn: async (applicationId: number) => {
+      const response = await fetch(`/api/admin/applications/${applicationId}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) throw new Error('Erreur lors de la suppression');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/applications"] });
+      toast({
+        title: "Succès",
+        description: "La candidature a été supprimée avec succès",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erreur",
+        description: error.message,
+        variant: "destructive",
+      });
     }
   });
 
@@ -82,6 +159,37 @@ export default function ApplicationManagement() {
 
   const handleStatusChange = (applicationId: number, newStatus: string) => {
     updateStatusMutation.mutate({ applicationId, status: newStatus });
+  };
+
+  const handleEditApplication = (application: any) => {
+    setEditingApplication(application);
+    setEditForm({
+      status: application.status || "",
+      assignedRecruiter: application.assignedRecruiter || "",
+      manualScore: application.manualScore?.toString() || "",
+      scoreNotes: application.scoreNotes || ""
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateApplication = () => {
+    if (!editingApplication) return;
+    
+    const updateData = {
+      ...editForm,
+      manualScore: editForm.manualScore ? parseInt(editForm.manualScore) : null
+    };
+    
+    updateApplicationMutation.mutate({
+      applicationId: editingApplication.id,
+      data: updateData
+    });
+  };
+
+  const handleDeleteApplication = (applicationId: number) => {
+    if (confirm('Êtes-vous sûr de vouloir supprimer cette candidature ?')) {
+      deleteApplicationMutation.mutate(applicationId);
+    }
   };
 
   const handleLogout = () => {
@@ -258,14 +366,32 @@ export default function ApplicationManagement() {
                     </div>
                     
                     <div className="flex flex-col space-y-2 ml-6">
-                      <Button variant="outline" size="sm">
-                        <Eye className="h-4 w-4 mr-2" />
-                        Voir le profil
-                      </Button>
+                      <div className="flex space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleEditApplication(app)}
+                          data-testid={`button-edit-application-${app.id}`}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="sm">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleDeleteApplication(app.id)}
+                          className="text-red-600 hover:text-red-700"
+                          data-testid={`button-delete-application-${app.id}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                       
                       <Select 
-                        value={application.status} 
-                        onValueChange={(value) => handleStatusChange(application.id, value)}
+                        value={app.status} 
+                        onValueChange={(value) => handleStatusChange(app.id, value)}
                       >
                         <SelectTrigger className="w-36">
                           <SelectValue />
@@ -292,6 +418,87 @@ export default function ApplicationManagement() {
           </div>
         )}
       </div>
+
+      {/* Modal d'édition */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Modifier la candidature</DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-status">Statut</Label>
+                <Select 
+                  value={editForm.status} 
+                  onValueChange={(value) => setEditForm({ ...editForm, status: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un statut" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">En attente</SelectItem>
+                    <SelectItem value="reviewed">Examinée</SelectItem>
+                    <SelectItem value="interview">Entretien</SelectItem>
+                    <SelectItem value="accepted">Acceptée</SelectItem>
+                    <SelectItem value="rejected">Refusée</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="edit-recruiter">Recruteur assigné</Label>
+                <Input
+                  id="edit-recruiter"
+                  value={editForm.assignedRecruiter}
+                  onChange={(e) => setEditForm({ ...editForm, assignedRecruiter: e.target.value })}
+                  placeholder="ID du recruteur"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="edit-score">Note manuelle (0-100)</Label>
+              <Input
+                id="edit-score"
+                type="number"
+                min="0"
+                max="100"
+                value={editForm.manualScore}
+                onChange={(e) => setEditForm({ ...editForm, manualScore: e.target.value })}
+                placeholder="Score de 0 à 100"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="edit-notes">Notes du recruteur</Label>
+              <Textarea
+                id="edit-notes"
+                value={editForm.scoreNotes}
+                onChange={(e) => setEditForm({ ...editForm, scoreNotes: e.target.value })}
+                placeholder="Commentaires et observations..."
+                rows={4}
+              />
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsEditDialogOpen(false)}
+              >
+                Annuler
+              </Button>
+              <Button 
+                onClick={handleUpdateApplication}
+                disabled={updateApplicationMutation.isPending}
+                data-testid="button-save-application"
+              >
+                {updateApplicationMutation.isPending ? 'Mise à jour...' : 'Sauvegarder'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

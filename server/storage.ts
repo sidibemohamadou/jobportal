@@ -82,8 +82,10 @@ export interface IStorage {
   // Application operations
   createApplication(application: InsertApplication, userId: string): Promise<Application>;
   getApplicationsByUser(userId: string): Promise<Application[]>;
+  getAllApplications(): Promise<Application[]>;
   getApplication(id: number): Promise<Application | undefined>;
   updateApplication(id: number, application: UpdateApplication): Promise<Application>;
+  deleteApplication(id: number): Promise<boolean>;
   getApplicationsForJob(jobId: number): Promise<Application[]>;
   getApplicationsByRecruiter(recruiterId: string): Promise<Application[]>;
   
@@ -679,6 +681,10 @@ export class MemStorage implements IStorage {
     return Array.from(this.applications.values()).filter(app => app.userId === userId);
   }
 
+  async getAllApplications(): Promise<Application[]> {
+    return Array.from(this.applications.values());
+  }
+
   async getApplication(id: number): Promise<Application | undefined> {
     return this.applications.get(id);
   }
@@ -696,6 +702,10 @@ export class MemStorage implements IStorage {
     };
     this.applications.set(id, updated);
     return updated;
+  }
+
+  async deleteApplication(id: number): Promise<boolean> {
+    return this.applications.delete(id);
   }
 
   async getApplicationsByRecruiter(recruiterId: string): Promise<Application[]> {
@@ -1346,6 +1356,10 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(applications).where(eq(applications.userId, userId)).orderBy(desc(applications.createdAt));
   }
 
+  async getAllApplications(): Promise<Application[]> {
+    return await db.select().from(applications).orderBy(desc(applications.createdAt));
+  }
+
   async getApplication(id: number): Promise<Application | undefined> {
     const [app] = await db.select().from(applications).where(eq(applications.id, id));
     return app || undefined;
@@ -1359,6 +1373,11 @@ export class DatabaseStorage implements IStorage {
       .returning();
     if (!updated) throw new Error("Application not found");
     return updated;
+  }
+
+  async deleteApplication(id: number): Promise<boolean> {
+    const result = await db.delete(applications).where(eq(applications.id, id));
+    return (result.rowCount || 0) > 0;
   }
 
   async getApplicationsForJob(jobId: number): Promise<Application[]> {

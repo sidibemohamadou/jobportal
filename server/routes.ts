@@ -2,7 +2,7 @@ import { Express } from "express";
 import type { Server } from "http";
 import { storage } from "./storage";
 import { registerAuthRoutes } from "./authRoutes";
-import { insertJobSchema } from "@shared/schema";
+import { insertJobSchema, insertApplicationSchema, updateApplicationSchema } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const { createServer } = await import("http");
@@ -60,7 +60,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Routes authentifiées - Applications
   app.get("/api/applications", requireAuth, async (req, res) => {
     try {
-      const applications: any[] = []; // Mock data for now
+      const userId = (req.user as any)?.id;
+      if (!userId) {
+        return res.status(401).json({ message: "User not authenticated" });
+      }
+      const applications = await storage.getApplicationsByUser(userId);
       res.json(applications);
     } catch (error) {
       console.error("Error fetching applications:", error);
@@ -74,11 +78,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!userId) {
         return res.status(401).json({ message: "User not authenticated" });
       }
-      // Mock response for now
-      const application = { id: 1, ...req.body, candidateId: userId };
+      
+      // Validation des données avec le schéma Zod
+      const validatedData = insertApplicationSchema.parse(req.body);
+      
+      // Convert availability string to Date if provided
+      if (validatedData.availability) {
+        validatedData.availability = new Date(validatedData.availability);
+      }
+      
+      // Création de la candidature via le storage
+      const application = await storage.createApplication(validatedData, userId);
       res.status(201).json(application);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating application:", error);
+      
+      if (error?.name === 'ZodError') {
+        return res.status(400).json({ 
+          message: "Données invalides", 
+          errors: error.errors 
+        });
+      }
+      
       res.status(500).json({ message: "Failed to create application" });
     }
   });
@@ -171,11 +192,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/admin/applications", requireAuth, requireAdminRole, async (req, res) => {
     try {
-      const applications: any[] = []; // Mock data for now
+      const applications = await storage.getAllApplications();
       res.json(applications);
     } catch (error) {
       console.error("Error fetching admin applications:", error);
       res.status(500).json({ message: "Failed to fetch applications" });
+    }
+  });
+
+  app.patch("/api/admin/applications/:id", requireAuth, requireAdminRole, async (req, res) => {
+    try {
+      const applicationId = parseInt(req.params.id);
+      if (isNaN(applicationId)) {
+        return res.status(400).json({ message: "ID de candidature invalide" });
+      }
+
+      // Validation partielle des données avec le schéma Zod
+      const validatedData = updateApplicationSchema.parse(req.body);
+      
+      // Mise à jour de la candidature via le storage
+      const updatedApplication = await storage.updateApplication(applicationId, validatedData);
+      
+      if (!updatedApplication) {
+        return res.status(404).json({ message: "Candidature non trouvée" });
+      }
+      
+      res.json(updatedApplication);
+    } catch (error: any) {
+      console.error("Error updating application:", error);
+      
+      if (error?.name === 'ZodError') {
+        return res.status(400).json({ 
+          message: "Données invalides", 
+          errors: error.errors 
+        });
+      }
+      
+      res.status(500).json({ message: "Failed to update application" });
+    }
+  });
+
+  app.delete("/api/admin/applications/:id", requireAuth, requireAdminRole, async (req, res) => {
+    try {
+      const applicationId = parseInt(req.params.id);
+      if (isNaN(applicationId)) {
+        return res.status(400).json({ message: "ID de candidature invalide" });
+      }
+
+      const deleted = await storage.deleteApplication(applicationId);
+      
+      if (!deleted) {
+        return res.status(404).json({ message: "Candidature non trouvée" });
+      }
+      
+      res.json({ message: "Candidature supprimée avec succès" });
+    } catch (error: any) {
+      console.error("Error deleting application:", error);
+      res.status(500).json({ message: "Failed to delete application" });
     }
   });
 
