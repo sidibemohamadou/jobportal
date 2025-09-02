@@ -509,6 +509,193 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // =============================================================================
+  // ONBOARDING MANAGEMENT ROUTES
+  // =============================================================================
+
+  // Onboarding Process Management (Admin/HR only)
+  app.get("/api/onboarding/processes", isAuthenticated, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'hr')) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const processes = await storage.getAllOnboardingProcesses();
+      res.json(processes);
+    } catch (error) {
+      console.error("Error fetching onboarding processes:", error);
+      res.status(500).json({ message: "Failed to fetch onboarding processes" });
+    }
+  });
+
+  app.post("/api/onboarding/processes", isAuthenticated, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'hr')) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const processData = { ...req.body, createdBy: req.user.claims.sub };
+      const newProcess = await storage.createOnboardingProcess(processData);
+      res.status(201).json(newProcess);
+    } catch (error) {
+      console.error("Error creating onboarding process:", error);
+      res.status(500).json({ message: "Failed to create onboarding process" });
+    }
+  });
+
+  app.put("/api/onboarding/processes/:id", isAuthenticated, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'hr')) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const { id } = req.params;
+      const updatedProcess = await storage.updateOnboardingProcess(parseInt(id), req.body);
+      res.json(updatedProcess);
+    } catch (error) {
+      console.error("Error updating onboarding process:", error);
+      res.status(500).json({ message: "Failed to update onboarding process" });
+    }
+  });
+
+  // Onboarding Steps Management
+  app.get("/api/onboarding/processes/:processId/steps", isAuthenticated, async (req, res) => {
+    try {
+      const { processId } = req.params;
+      const steps = await storage.getOnboardingStepsByProcess(parseInt(processId));
+      res.json(steps);
+    } catch (error) {
+      console.error("Error fetching onboarding steps:", error);
+      res.status(500).json({ message: "Failed to fetch onboarding steps" });
+    }
+  });
+
+  app.post("/api/onboarding/processes/:processId/steps", isAuthenticated, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'hr')) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const { processId } = req.params;
+      const stepData = { ...req.body, processId: parseInt(processId) };
+      const newStep = await storage.createOnboardingStep(stepData);
+      res.status(201).json(newStep);
+    } catch (error) {
+      console.error("Error creating onboarding step:", error);
+      res.status(500).json({ message: "Failed to create onboarding step" });
+    }
+  });
+
+  // Candidate Onboarding Management
+  app.post("/api/onboarding/candidates", isAuthenticated, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'hr')) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      // Générer un employeeId si pas déjà défini
+      const { userId } = req.body;
+      const user = await storage.getUser(userId);
+      if (user && !user.employeeId) {
+        const employeeId = await storage.generateEmployeeId(user.firstName || '', user.lastName || '');
+        await storage.updateUser(userId, { employeeId });
+      }
+      
+      const onboardingData = { ...req.body, createdBy: req.user.claims.sub };
+      const newOnboarding = await storage.createCandidateOnboarding(onboardingData);
+      res.status(201).json(newOnboarding);
+    } catch (error) {
+      console.error("Error creating candidate onboarding:", error);
+      res.status(500).json({ message: "Failed to create candidate onboarding" });
+    }
+  });
+
+  app.get("/api/onboarding/candidates/user/:userId", isAuthenticated, async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      
+      // L'utilisateur peut voir son propre onboarding ou admin/hr peuvent voir tous
+      if (userId !== req.user.claims.sub && 
+          (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'hr'))) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const onboardings = await storage.getCandidateOnboardingByUser(userId);
+      res.json(onboardings);
+    } catch (error) {
+      console.error("Error fetching candidate onboarding:", error);
+      res.status(500).json({ message: "Failed to fetch candidate onboarding" });
+    }
+  });
+
+  app.get("/api/onboarding/candidates/:id/steps", isAuthenticated, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const onboarding = await storage.getCandidateOnboarding(parseInt(id));
+      
+      if (!onboarding) {
+        return res.status(404).json({ message: "Onboarding not found" });
+      }
+      
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      // Vérifier l'accès : propriétaire ou admin/hr
+      if (onboarding.userId !== req.user.claims.sub && 
+          (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'hr'))) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const completions = await storage.getStepCompletionsByOnboarding(parseInt(id));
+      res.json(completions);
+    } catch (error) {
+      console.error("Error fetching onboarding steps:", error);
+      res.status(500).json({ message: "Failed to fetch onboarding steps" });
+    }
+  });
+
+  app.put("/api/onboarding/steps/:completionId", isAuthenticated, async (req, res) => {
+    try {
+      const { completionId } = req.params;
+      const updateData = { ...req.body, completedBy: req.user.claims.sub };
+      
+      if (req.body.status === 'completed') {
+        updateData.completionDate = new Date();
+      }
+      
+      const updatedCompletion = await storage.updateStepCompletion(parseInt(completionId), updateData);
+      res.json(updatedCompletion);
+    } catch (error) {
+      console.error("Error updating step completion:", error);
+      res.status(500).json({ message: "Failed to update step completion" });
+    }
+  });
+
+  // Generate Employee ID endpoint
+  app.post("/api/onboarding/generate-employee-id", isAuthenticated, async (req, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      if (!currentUser || (currentUser.role !== 'admin' && currentUser.role !== 'hr')) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      
+      const { firstName, lastName } = req.body;
+      if (!firstName || !lastName) {
+        return res.status(400).json({ message: "First name and last name are required" });
+      }
+      
+      const employeeId = await storage.generateEmployeeId(firstName, lastName);
+      res.json({ employeeId });
+    } catch (error) {
+      console.error("Error generating employee ID:", error);
+      res.status(500).json({ message: "Failed to generate employee ID" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

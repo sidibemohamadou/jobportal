@@ -9,6 +9,10 @@ import {
   leaveRequests,
   leaveBalances,
   hrRequests,
+  onboardingProcesses,
+  onboardingSteps,
+  candidateOnboarding,
+  onboardingStepCompletions,
   type User,
   type UpsertUser,
   type Job,
@@ -29,6 +33,14 @@ import {
   type LeaveBalance,
   type HrRequest,
   type InsertHrRequest,
+  type OnboardingProcess,
+  type InsertOnboardingProcess,
+  type OnboardingStep,
+  type InsertOnboardingStep,
+  type CandidateOnboarding,
+  type InsertCandidateOnboarding,
+  type OnboardingStepCompletion,
+  type InsertStepCompletion,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -104,6 +116,28 @@ export interface IStorage {
   getHrRequestsByEmployee(employeeId: number): Promise<HrRequest[]>;
   getAllHrRequests(): Promise<HrRequest[]>;
   updateHrRequest(id: number, data: Partial<HrRequest>): Promise<HrRequest>;
+  
+  // Onboarding operations
+  createOnboardingProcess(process: InsertOnboardingProcess): Promise<OnboardingProcess>;
+  getOnboardingProcess(id: number): Promise<OnboardingProcess | undefined>;
+  getAllOnboardingProcesses(): Promise<OnboardingProcess[]>;
+  updateOnboardingProcess(id: number, data: Partial<OnboardingProcess>): Promise<OnboardingProcess>;
+  
+  createOnboardingStep(step: InsertOnboardingStep): Promise<OnboardingStep>;
+  getOnboardingStepsByProcess(processId: number): Promise<OnboardingStep[]>;
+  updateOnboardingStep(id: number, data: Partial<OnboardingStep>): Promise<OnboardingStep>;
+  
+  createCandidateOnboarding(onboarding: InsertCandidateOnboarding): Promise<CandidateOnboarding>;
+  getCandidateOnboarding(id: number): Promise<CandidateOnboarding | undefined>;
+  getCandidateOnboardingByUser(userId: string): Promise<CandidateOnboarding[]>;
+  updateCandidateOnboarding(id: number, data: Partial<CandidateOnboarding>): Promise<CandidateOnboarding>;
+  
+  createStepCompletion(completion: InsertStepCompletion): Promise<OnboardingStepCompletion>;
+  getStepCompletionsByOnboarding(onboardingId: number): Promise<OnboardingStepCompletion[]>;
+  updateStepCompletion(id: number, data: Partial<OnboardingStepCompletion>): Promise<OnboardingStepCompletion>;
+  
+  // Employee ID generation
+  generateEmployeeId(firstName: string, lastName: string): Promise<string>;
 }
 
 export class MemStorage implements IStorage {
@@ -1239,6 +1273,171 @@ export class DatabaseStorage implements IStorage {
     return {
       jobPopularity,
     };
+  }
+
+  // Onboarding operations implementation
+  async createOnboardingProcess(process: InsertOnboardingProcess): Promise<OnboardingProcess> {
+    const [newProcess] = await db
+      .insert(onboardingProcesses)
+      .values(process)
+      .returning();
+    return newProcess;
+  }
+
+  async getOnboardingProcess(id: number): Promise<OnboardingProcess | undefined> {
+    const [process] = await db.select().from(onboardingProcesses).where(eq(onboardingProcesses.id, id));
+    return process || undefined;
+  }
+
+  async getAllOnboardingProcesses(): Promise<OnboardingProcess[]> {
+    return await db.select().from(onboardingProcesses).where(eq(onboardingProcesses.isActive, true)).orderBy(desc(onboardingProcesses.createdAt));
+  }
+
+  async updateOnboardingProcess(id: number, data: Partial<OnboardingProcess>): Promise<OnboardingProcess> {
+    const [updated] = await db
+      .update(onboardingProcesses)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(onboardingProcesses.id, id))
+      .returning();
+    if (!updated) throw new Error("Onboarding process not found");
+    return updated;
+  }
+
+  async createOnboardingStep(step: InsertOnboardingStep): Promise<OnboardingStep> {
+    const [newStep] = await db
+      .insert(onboardingSteps)
+      .values(step)
+      .returning();
+    return newStep;
+  }
+
+  async getOnboardingStepsByProcess(processId: number): Promise<OnboardingStep[]> {
+    return await db.select().from(onboardingSteps).where(eq(onboardingSteps.processId, processId)).orderBy(onboardingSteps.stepNumber);
+  }
+
+  async updateOnboardingStep(id: number, data: Partial<OnboardingStep>): Promise<OnboardingStep> {
+    const [updated] = await db
+      .update(onboardingSteps)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(onboardingSteps.id, id))
+      .returning();
+    if (!updated) throw new Error("Onboarding step not found");
+    return updated;
+  }
+
+  async createCandidateOnboarding(onboarding: InsertCandidateOnboarding): Promise<CandidateOnboarding> {
+    const [newOnboarding] = await db
+      .insert(candidateOnboarding)
+      .values(onboarding)
+      .returning();
+    
+    // Créer automatiquement les completions pour toutes les étapes du processus
+    const steps = await this.getOnboardingStepsByProcess(onboarding.processId);
+    for (const step of steps) {
+      await db.insert(onboardingStepCompletions).values({
+        candidateOnboardingId: newOnboarding.id,
+        stepId: step.id,
+        status: "pending"
+      });
+    }
+    
+    return newOnboarding;
+  }
+
+  async getCandidateOnboarding(id: number): Promise<CandidateOnboarding | undefined> {
+    const [onboarding] = await db.select().from(candidateOnboarding).where(eq(candidateOnboarding.id, id));
+    return onboarding || undefined;
+  }
+
+  async getCandidateOnboardingByUser(userId: string): Promise<CandidateOnboarding[]> {
+    return await db.select().from(candidateOnboarding).where(eq(candidateOnboarding.userId, userId)).orderBy(desc(candidateOnboarding.createdAt));
+  }
+
+  async updateCandidateOnboarding(id: number, data: Partial<CandidateOnboarding>): Promise<CandidateOnboarding> {
+    const [updated] = await db
+      .update(candidateOnboarding)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(candidateOnboarding.id, id))
+      .returning();
+    if (!updated) throw new Error("Candidate onboarding not found");
+    return updated;
+  }
+
+  async createStepCompletion(completion: InsertStepCompletion): Promise<OnboardingStepCompletion> {
+    const [newCompletion] = await db
+      .insert(onboardingStepCompletions)
+      .values(completion)
+      .returning();
+    return newCompletion;
+  }
+
+  async getStepCompletionsByOnboarding(onboardingId: number): Promise<OnboardingStepCompletion[]> {
+    return await db.select().from(onboardingStepCompletions).where(eq(onboardingStepCompletions.candidateOnboardingId, onboardingId)).orderBy(onboardingStepCompletions.id);
+  }
+
+  async updateStepCompletion(id: number, data: Partial<OnboardingStepCompletion>): Promise<OnboardingStepCompletion> {
+    const [updated] = await db
+      .update(onboardingStepCompletions)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(onboardingStepCompletions.id, id))
+      .returning();
+    if (!updated) throw new Error("Step completion not found");
+    
+    // Mettre à jour le progrès de l'onboarding
+    await this.updateOnboardingProgress(data.candidateOnboardingId!);
+    
+    return updated;
+  }
+
+  async generateEmployeeId(firstName: string, lastName: string): Promise<string> {
+    // Générer les initiales
+    const firstInitial = firstName.charAt(0).toUpperCase();
+    const lastInitial = lastName.charAt(0).toUpperCase();
+    const baseId = `${firstInitial}${lastInitial}`;
+    
+    // Vérifier les IDs existants pour éviter les doublons
+    const existingUsers = await db.select().from(users).where(like(users.employeeId, `${baseId}%`));
+    
+    if (existingUsers.length === 0) {
+      return `${baseId}001`;
+    }
+    
+    // Trouver le prochain numéro disponible
+    const numbers = existingUsers
+      .map(user => user.employeeId?.substring(2))
+      .filter(num => num && /^\d{3}$/.test(num))
+      .map(num => parseInt(num!, 10))
+      .sort((a, b) => a - b);
+    
+    let nextNumber = 1;
+    for (const num of numbers) {
+      if (num === nextNumber) {
+        nextNumber++;
+      } else {
+        break;
+      }
+    }
+    
+    return `${baseId}${nextNumber.toString().padStart(3, '0')}`;
+  }
+
+  private async updateOnboardingProgress(candidateOnboardingId: number): Promise<void> {
+    // Calculer le pourcentage de progression
+    const completions = await this.getStepCompletionsByOnboarding(candidateOnboardingId);
+    const totalSteps = completions.length;
+    const completedSteps = completions.filter(c => c.status === 'completed').length;
+    const progress = totalSteps > 0 ? Math.round((completedSteps / totalSteps) * 100) : 0;
+    
+    // Déterminer le statut global
+    let status = 'pending';
+    if (progress > 0 && progress < 100) status = 'in_progress';
+    else if (progress === 100) status = 'completed';
+    
+    await this.updateCandidateOnboarding(candidateOnboardingId, {
+      progress,
+      status,
+      actualCompletionDate: progress === 100 ? new Date().toISOString().split('T')[0] : undefined
+    });
   }
 }
 

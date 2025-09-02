@@ -181,6 +181,14 @@ export default function CandidateDashboard() {
                 </Link>
               </li>
               <li>
+                <Link href="/onboarding">
+                  <a className="flex items-center space-x-3 p-3 text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors" data-testid="link-onboarding">
+                    <UserCheck className="h-5 w-5" />
+                    <span>Mon onboarding</span>
+                  </a>
+                </Link>
+              </li>
+              <li>
                 <Link href="/jobs">
                   <a className="flex items-center space-x-3 p-3 text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors" data-testid="link-search">
                     <Search className="h-5 w-5" />

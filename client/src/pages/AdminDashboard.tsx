@@ -23,7 +23,8 @@ import {
   Clock,
   CheckCircle,
   X,
-  Trash2
+  Trash2,
+  UserCheck
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "wouter";
@@ -664,6 +665,22 @@ export default function AdminDashboard() {
                   <CardContent>
                     <p className="text-sm text-muted-foreground">
                       Consulter et modifier les offres
+                    </p>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              <Link to="/admin/onboarding">
+                <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <UserCheck className="h-5 w-5" />
+                      Onboarding
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      Gérer l'intégration des nouveaux employés
                     </p>
                   </CardContent>
                 </Card>

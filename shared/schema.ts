@@ -55,6 +55,9 @@ export const users = pgTable("users", {
   // Profil complété
   profileCompleted: boolean("profile_completed").default(false),
   
+  // Identifiant employé unique basé sur les initiales
+  employeeId: varchar("employee_id").unique(),
+  
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -225,6 +228,72 @@ export const hrRequests = pgTable("hr_requests", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Onboarding Process Templates table - définit les modèles de processus d'onboarding
+export const onboardingProcesses = pgTable("onboarding_processes", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(), // Ex: "Onboarding Standard Aviation", "Processus Sécurité Aéroport"
+  description: text("description"),
+  department: text("department"), // Aviation, Sécurité, Administration, etc.
+  isActive: boolean("is_active").default(true),
+  estimatedDuration: integer("estimated_duration"), // Durée estimée en jours
+  createdBy: varchar("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Onboarding Steps table - définit les étapes de chaque processus
+export const onboardingSteps = pgTable("onboarding_steps", {
+  id: serial("id").primaryKey(),
+  processId: integer("process_id").notNull().references(() => onboardingProcesses.id),
+  stepNumber: integer("step_number").notNull(), // Ordre de l'étape
+  title: text("title").notNull(), // Ex: "Formation Sécurité", "Remise Badge d'Accès"
+  description: text("description"),
+  category: text("category"), // documentation, formation, administrative, technique
+  isRequired: boolean("is_required").default(true),
+  estimatedDuration: integer("estimated_duration"), // Durée estimée en heures
+  assignedRole: text("assigned_role"), // admin, hr, security, supervisor
+  requiredDocuments: text("required_documents").array(), // Documents nécessaires
+  completionCriteria: text("completion_criteria"), // Critères de validation
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Candidate Onboarding table - instance d'onboarding pour un candidat spécifique
+export const candidateOnboarding = pgTable("candidate_onboarding", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  processId: integer("process_id").notNull().references(() => onboardingProcesses.id),
+  applicationId: integer("application_id").references(() => applications.id),
+  status: text("status").notNull().default("pending"), // pending, in_progress, completed, suspended
+  startDate: date("start_date"),
+  expectedCompletionDate: date("expected_completion_date"),
+  actualCompletionDate: date("actual_completion_date"),
+  assignedMentor: varchar("assigned_mentor").references(() => users.id), // Mentor assigné
+  progress: integer("progress").default(0), // Pourcentage de progression (0-100)
+  notes: text("notes"), // Notes générales sur l'onboarding
+  createdBy: varchar("created_by").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Onboarding Step Completions table - suivi de la complétion de chaque étape
+export const onboardingStepCompletions = pgTable("onboarding_step_completions", {
+  id: serial("id").primaryKey(),
+  candidateOnboardingId: integer("candidate_onboarding_id").notNull().references(() => candidateOnboarding.id),
+  stepId: integer("step_id").notNull().references(() => onboardingSteps.id),
+  status: text("status").notNull().default("pending"), // pending, in_progress, completed, skipped, blocked
+  startDate: timestamp("start_date"),
+  completionDate: timestamp("completion_date"),
+  completedBy: varchar("completed_by").references(() => users.id), // Qui a validé l'étape
+  notes: text("notes"), // Commentaires sur l'étape
+  attachments: text("attachments").array(), // Fichiers joints (certificats, etc.)
+  validationRequired: boolean("validation_required").default(false),
+  validatedBy: varchar("validated_by").references(() => users.id),
+  validationDate: timestamp("validation_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Export schemas for validation
 export const insertJobSchema = createInsertSchema(jobs).omit({
   id: true,
@@ -277,6 +346,31 @@ export const insertApplicationSchema = createInsertSchema(applications).omit({
 
 export const updateApplicationSchema = insertApplicationSchema.partial();
 
+// Onboarding schemas
+export const insertOnboardingProcessSchema = createInsertSchema(onboardingProcesses).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertOnboardingStepSchema = createInsertSchema(onboardingSteps).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCandidateOnboardingSchema = createInsertSchema(candidateOnboarding).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertStepCompletionSchema = createInsertSchema(onboardingStepCompletions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Export types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -300,3 +394,13 @@ export type InsertLeaveRequest = z.infer<typeof insertLeaveRequestSchema>;
 export type LeaveBalance = typeof leaveBalances.$inferSelect;
 export type HrRequest = typeof hrRequests.$inferSelect;
 export type InsertHrRequest = z.infer<typeof insertHrRequestSchema>;
+
+// Onboarding types
+export type OnboardingProcess = typeof onboardingProcesses.$inferSelect;
+export type InsertOnboardingProcess = z.infer<typeof insertOnboardingProcessSchema>;
+export type OnboardingStep = typeof onboardingSteps.$inferSelect;
+export type InsertOnboardingStep = z.infer<typeof insertOnboardingStepSchema>;
+export type CandidateOnboarding = typeof candidateOnboarding.$inferSelect;
+export type InsertCandidateOnboarding = z.infer<typeof insertCandidateOnboardingSchema>;
+export type OnboardingStepCompletion = typeof onboardingStepCompletions.$inferSelect;
+export type InsertStepCompletion = z.infer<typeof insertStepCompletionSchema>;

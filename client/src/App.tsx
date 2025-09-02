@@ -20,6 +20,8 @@ import ContractManagement from "@/pages/ContractManagement";
 import HRManagement from "@/pages/HRManagement";
 import UserManagement from "@/pages/UserManagement";
 import PayrollManagement from "@/pages/PayrollManagement";
+import OnboardingManagement from "@/pages/OnboardingManagement";
+import CandidateOnboarding from "@/pages/CandidateOnboarding";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -50,6 +52,7 @@ function Router() {
               <Route path="/profile" component={Profile} />
               <Route path="/applications" component={Applications} />
               <Route path="/jobs" component={Landing} />
+              <Route path="/onboarding" component={CandidateOnboarding} />
             </>
           )}
           
@@ -66,6 +69,7 @@ function Router() {
               <Route path="/contracts" component={ContractManagement} />
               <Route path="/hr" component={HRManagement} />
               <Route path="/admin/payroll" component={PayrollManagement} />
+              <Route path="/admin/onboarding" component={OnboardingManagement} />
               {(user as any)?.role === "admin" && (
                 <Route path="/admin/users" component={UserManagement} />
               )}
