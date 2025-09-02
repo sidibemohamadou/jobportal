@@ -759,3 +759,27 @@ export type EmployeeDocument = typeof employeeDocuments.$inferSelect;
 export type InsertEmployeeDocument = z.infer<typeof insertEmployeeDocumentSchema>;
 export type TimeEntry = typeof timeEntries.$inferSelect;
 export type InsertTimeEntry = z.infer<typeof insertTimeEntrySchema>;
+
+// Table des invitations candidats pour présélectionnés
+export const candidateInvitations = pgTable("candidate_invitations", {
+  id: serial("id").primaryKey(),
+  email: varchar("email").notNull(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  jobId: integer("job_id").notNull().references(() => jobs.id),
+  applicationId: integer("application_id").references(() => applications.id),
+  invitationToken: varchar("invitation_token").notNull().unique(),
+  status: text("status").notNull().default("sent"), // sent, opened, completed, expired
+  sentBy: varchar("sent_by").notNull().references(() => users.id),
+  sentAt: timestamp("sent_at").defaultNow(),
+  expiresAt: timestamp("expires_at").notNull(),
+  completedAt: timestamp("completed_at"),
+  emailContent: text("email_content"),
+  personalMessage: text("personal_message"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertCandidateInvitationSchema = createInsertSchema(candidateInvitations);
+export type InsertCandidateInvitation = typeof candidateInvitations.$inferInsert;
+export type CandidateInvitation = typeof candidateInvitations.$inferSelect;

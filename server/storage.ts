@@ -13,6 +13,7 @@ import {
   onboardingSteps,
   candidateOnboarding,
   onboardingStepCompletions,
+  candidateInvitations,
   type User,
   type UpsertUser,
   type Job,
@@ -52,6 +53,8 @@ import {
   onboardingEvents,
   type OnboardingEvent,
   type InsertOnboardingEvent,
+  type CandidateInvitation,
+  type InsertCandidateInvitation,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -204,6 +207,12 @@ export interface IStorage {
   // Time Tracking
   createTimeEntry(entry: any): Promise<any>;
   getTimeEntries(): Promise<any[]>;
+  
+  // Candidate Invitations
+  createCandidateInvitation(invitation: InsertCandidateInvitation): Promise<CandidateInvitation>;
+  getCandidateInvitations(): Promise<CandidateInvitation[]>;
+  getCandidateInvitationByToken(token: string): Promise<CandidateInvitation | undefined>;
+  updateCandidateInvitation(id: number, data: Partial<CandidateInvitation>): Promise<CandidateInvitation>;
 }
 
 export class MemStorage implements IStorage {
@@ -1974,6 +1983,39 @@ export class DatabaseStorage implements IStorage {
   async getTimeEntries(): Promise<any[]> {
     // TODO: Implement with actual database tables
     return [];
+  }
+  
+  // Candidate Invitations implementation
+  async createCandidateInvitation(invitation: InsertCandidateInvitation): Promise<CandidateInvitation> {
+    const [newInvitation] = await db
+      .insert(candidateInvitations)
+      .values(invitation)
+      .returning();
+    return newInvitation;
+  }
+  
+  async getCandidateInvitations(): Promise<CandidateInvitation[]> {
+    return await db
+      .select()
+      .from(candidateInvitations)
+      .orderBy(desc(candidateInvitations.createdAt));
+  }
+  
+  async getCandidateInvitationByToken(token: string): Promise<CandidateInvitation | undefined> {
+    const [invitation] = await db
+      .select()
+      .from(candidateInvitations)
+      .where(eq(candidateInvitations.invitationToken, token));
+    return invitation || undefined;
+  }
+  
+  async updateCandidateInvitation(id: number, data: Partial<CandidateInvitation>): Promise<CandidateInvitation> {
+    const [updated] = await db
+      .update(candidateInvitations)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(candidateInvitations.id, id))
+      .returning();
+    return updated;
   }
 }
 

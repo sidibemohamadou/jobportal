@@ -12,7 +12,8 @@ import {
   insertEmployeeTrainingSchema,
   insertDisciplinaryActionSchema,
   insertEmployeeDocumentSchema,
-  insertTimeEntrySchema
+  insertTimeEntrySchema,
+  insertCandidateInvitationSchema
 } from "@shared/schema";
 import {
   ObjectStorageService,
@@ -1061,6 +1062,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error creating time entry:", error);
       res.status(500).json({ message: "Failed to create time entry" });
+    }
+  });
+
+  // Candidate Invitations Routes
+  app.get("/api/candidate-invitations", isAuthenticated, requireAdminRole, async (req, res) => {
+    try {
+      const invitations = await storage.getCandidateInvitations();
+      res.json(invitations);
+    } catch (error) {
+      console.error("Error fetching candidate invitations:", error);
+      res.status(500).json({ message: "Failed to fetch invitations" });
+    }
+  });
+
+  app.post("/api/candidate-invitations", isAuthenticated, requireAdminRole, async (req: any, res) => {
+    try {
+      const { randomUUID } = await import("crypto");
+      
+      const invitationData = insertCandidateInvitationSchema.parse({
+        ...req.body,
+        sentBy: req.user?.claims?.sub,
+        invitationToken: randomUUID(),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 jours
+      });
+      
+      const invitation = await storage.createCandidateInvitation(invitationData);
+      
+      // TODO: Envoyer l'email d'invitation ici
+      // await sendInvitationEmail(invitation);
+      
+      res.status(201).json(invitation);
+    } catch (error) {
+      console.error("Error creating candidate invitation:", error);
+      res.status(500).json({ message: "Failed to create invitation" });
+    }
+  });
+
+  // Route publique pour accepter l'invitation candidat (via token)
+  app.get("/api/candidate-invitation/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const invitation = await storage.getCandidateInvitationByToken(token);
+      
+      if (!invitation) {
+        return res.status(404).json({ message: "Invitation not found" });
+      }
+      
+      if (new Date() > new Date(invitation.expiresAt)) {
+        return res.status(410).json({ message: "Invitation expired" });
+      }
+      
+      // Marquer l'invitation comme ouverte
+      await storage.updateCandidateInvitation(invitation.id, {
+        status: "opened"
+      });
+      
+      res.json(invitation);
+    } catch (error) {
+      console.error("Error validating invitation:", error);
+      res.status(500).json({ message: "Failed to validate invitation" });
     }
   });
 

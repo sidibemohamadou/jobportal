@@ -27,6 +27,8 @@ import AchievementsPage from "@/pages/AchievementsPage";
 import OnboardingCalendar from "@/pages/OnboardingCalendar";
 import InterviewManagement from "@/pages/InterviewManagement";
 import EmployeeManagement from "@/pages/EmployeeManagement";
+import CandidateInvitations from "@/pages/CandidateInvitations";
+import CandidateInvitationHandler from "@/pages/CandidateInvitationHandler";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -47,6 +49,7 @@ function Router() {
         <>
           <Route path="/" component={Landing} />
           <Route path="/candidate-login" component={CandidateLogin} />
+          <Route path="/candidate-invitation/:token" component={CandidateInvitationHandler} />
         </>
       ) : (
         <>
@@ -80,6 +83,7 @@ function Router() {
               <Route path="/admin/onboarding" component={OnboardingManagement} />
               <Route path="/admin/interviews" component={InterviewManagement} />
               <Route path="/admin/employees" component={EmployeeManagement} />
+              <Route path="/admin/invitations" component={CandidateInvitations} />
               {(user as any)?.role === "admin" && (
                 <Route path="/admin/users" component={UserManagement} />
               )}

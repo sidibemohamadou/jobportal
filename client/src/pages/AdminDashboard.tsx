@@ -720,6 +720,22 @@ export default function AdminDashboard() {
                 </Card>
               </Link>
 
+              <Link to="/admin/invitations">
+                <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Mail className="h-5 w-5" />
+                      Invitations Candidats
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      Inviter des candidats présélectionnés
+                    </p>
+                  </CardContent>
+                </Card>
+              </Link>
+
               {(user as any)?.role === "admin" && (
                 <Link to="/admin/users">
                   <Card className="cursor-pointer hover:shadow-lg transition-shadow">
