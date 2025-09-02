@@ -542,6 +542,8 @@ export const insertJobSchema = createInsertSchema(jobs).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  isActive: z.boolean().optional().transform((val) => val ? 1 : 0)
 });
 
 export const insertEmployeeSchema = createInsertSchema(employees).omit({
