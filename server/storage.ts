@@ -41,6 +41,17 @@ import {
   type InsertCandidateOnboarding,
   type OnboardingStepCompletion,
   type InsertStepCompletion,
+  onboardingFeedback,
+  type OnboardingFeedback,
+  type InsertOnboardingFeedback,
+  onboardingAchievements,
+  type OnboardingAchievement,
+  type InsertOnboardingAchievement,
+  userAchievements,
+  type UserAchievement,
+  onboardingEvents,
+  type OnboardingEvent,
+  type InsertOnboardingEvent,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { db } from "./db";
@@ -142,6 +153,21 @@ export interface IStorage {
   // Onboarding analytics
   getOnboardingAnalytics(): Promise<any>;
   getOnboardingProcessTemplates(): Promise<OnboardingProcess[]>;
+  
+  // Feedback system
+  createOnboardingFeedback(feedback: InsertOnboardingFeedback): Promise<OnboardingFeedback>;
+  getOnboardingFeedback(candidateOnboardingId?: number): Promise<OnboardingFeedback[]>;
+  
+  // Achievement system
+  createAchievement(achievement: InsertOnboardingAchievement): Promise<OnboardingAchievement>;
+  getAchievements(): Promise<OnboardingAchievement[]>;
+  awardAchievement(userId: string, achievementId: number, candidateOnboardingId?: number): Promise<UserAchievement>;
+  getUserAchievements(userId: string): Promise<UserAchievement[]>;
+  
+  // Calendar events
+  createOnboardingEvent(event: InsertOnboardingEvent): Promise<OnboardingEvent>;
+  getOnboardingEvents(candidateOnboardingId?: number): Promise<OnboardingEvent[]>;
+  updateOnboardingEvent(id: number, data: Partial<OnboardingEvent>): Promise<OnboardingEvent>;
 }
 
 export class MemStorage implements IStorage {
@@ -1634,6 +1660,176 @@ export class DatabaseStorage implements IStorage {
     ];
     
     return templates as OnboardingProcess[];
+  }
+
+  // Feedback system implementation
+  async createOnboardingFeedback(feedback: InsertOnboardingFeedback): Promise<OnboardingFeedback> {
+    const [newFeedback] = await db
+      .insert(onboardingFeedback)
+      .values(feedback)
+      .returning();
+    return newFeedback;
+  }
+
+  async getOnboardingFeedback(candidateOnboardingId?: number): Promise<OnboardingFeedback[]> {
+    if (candidateOnboardingId) {
+      return await db
+        .select()
+        .from(onboardingFeedback)
+        .where(eq(onboardingFeedback.candidateOnboardingId, candidateOnboardingId));
+    }
+    return await db.select().from(onboardingFeedback);
+  }
+
+  // Achievement system implementation
+  async createAchievement(achievement: InsertOnboardingAchievement): Promise<OnboardingAchievement> {
+    const [newAchievement] = await db
+      .insert(onboardingAchievements)
+      .values(achievement)
+      .returning();
+    return newAchievement;
+  }
+
+  async getAchievements(): Promise<OnboardingAchievement[]> {
+    return await db
+      .select()
+      .from(onboardingAchievements)
+      .where(eq(onboardingAchievements.isActive, true));
+  }
+
+  async awardAchievement(userId: string, achievementId: number, candidateOnboardingId?: number): Promise<UserAchievement> {
+    // Check if user already has this achievement
+    const existing = await db
+      .select()
+      .from(userAchievements)
+      .where(
+        and(
+          eq(userAchievements.userId, userId),
+          eq(userAchievements.achievementId, achievementId)
+        )
+      );
+
+    if (existing.length > 0) {
+      return existing[0];
+    }
+
+    const [award] = await db
+      .insert(userAchievements)
+      .values({
+        userId,
+        achievementId,
+        candidateOnboardingId
+      })
+      .returning();
+    return award;
+  }
+
+  async getUserAchievements(userId: string): Promise<UserAchievement[]> {
+    return await db
+      .select({
+        id: userAchievements.id,
+        userId: userAchievements.userId,
+        achievementId: userAchievements.achievementId,
+        candidateOnboardingId: userAchievements.candidateOnboardingId,
+        earnedAt: userAchievements.earnedAt,
+        createdAt: userAchievements.createdAt,
+        achievement: {
+          id: onboardingAchievements.id,
+          name: onboardingAchievements.name,
+          description: onboardingAchievements.description,
+          icon: onboardingAchievements.icon,
+          category: onboardingAchievements.category,
+          points: onboardingAchievements.points
+        }
+      })
+      .from(userAchievements)
+      .leftJoin(onboardingAchievements, eq(userAchievements.achievementId, onboardingAchievements.id))
+      .where(eq(userAchievements.userId, userId));
+  }
+
+  // Calendar events implementation
+  async createOnboardingEvent(event: InsertOnboardingEvent): Promise<OnboardingEvent> {
+    const [newEvent] = await db
+      .insert(onboardingEvents)
+      .values(event)
+      .returning();
+    return newEvent;
+  }
+
+  async getOnboardingEvents(candidateOnboardingId?: number): Promise<OnboardingEvent[]> {
+    if (candidateOnboardingId) {
+      return await db
+        .select()
+        .from(onboardingEvents)
+        .where(eq(onboardingEvents.candidateOnboardingId, candidateOnboardingId))
+        .orderBy(onboardingEvents.startDateTime);
+    }
+    return await db
+      .select()
+      .from(onboardingEvents)
+      .orderBy(onboardingEvents.startDateTime);
+  }
+
+  async updateOnboardingEvent(id: number, data: Partial<OnboardingEvent>): Promise<OnboardingEvent> {
+    const [updatedEvent] = await db
+      .update(onboardingEvents)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(onboardingEvents.id, id))
+      .returning();
+    return updatedEvent;
+  }
+
+  // Initialize default achievements
+  async initializeDefaultAchievements(): Promise<void> {
+    const existingAchievements = await this.getAchievements();
+    if (existingAchievements.length > 0) return;
+
+    const defaultAchievements = [
+      {
+        name: "Premier Pas",
+        description: "Terminé votre première étape d'onboarding",
+        icon: "Star",
+        category: "milestone",
+        criteria: JSON.stringify({ stepCount: 1 }),
+        points: 10
+      },
+      {
+        name: "Rapide comme l'Éclair",
+        description: "Terminé 3 étapes en une journée",
+        icon: "Zap",
+        category: "speed",
+        criteria: JSON.stringify({ stepsPerDay: 3 }),
+        points: 25
+      },
+      {
+        name: "Professionnel Aviation",
+        description: "Terminé toutes les formations aviation",
+        icon: "Plane",
+        category: "milestone",
+        criteria: JSON.stringify({ categoryComplete: "formation" }),
+        points: 50
+      },
+      {
+        name: "Communicateur",
+        description: "Échangé 10 messages avec votre mentor",
+        icon: "MessageSquare",
+        category: "engagement",
+        criteria: JSON.stringify({ messageCount: 10 }),
+        points: 20
+      },
+      {
+        name: "Expert Sécurité",
+        description: "Réussi toutes les certifications sécurité",
+        icon: "Shield",
+        category: "quality",
+        criteria: JSON.stringify({ securityCertifications: true }),
+        points: 40
+      }
+    ];
+
+    for (const achievement of defaultAchievements) {
+      await this.createAchievement(achievement);
+    }
   }
 }
 

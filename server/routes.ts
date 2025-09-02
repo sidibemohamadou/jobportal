@@ -781,6 +781,136 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ===== FEEDBACK SYSTEM ROUTES =====
+  
+  // Submit feedback for onboarding experience
+  app.post("/api/onboarding/feedback", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const feedbackData = {
+        ...req.body,
+        userId
+      };
+      const feedback = await storage.createOnboardingFeedback(feedbackData);
+      res.json(feedback);
+    } catch (error) {
+      console.error("Error creating feedback:", error);
+      res.status(500).json({ message: "Failed to create feedback" });
+    }
+  });
+
+  // Get feedback for a specific onboarding or all feedback (admin)
+  app.get("/api/onboarding/feedback", isAuthenticated, async (req: any, res) => {
+    try {
+      const { candidateOnboardingId } = req.query;
+      const feedback = await storage.getOnboardingFeedback(candidateOnboardingId ? parseInt(candidateOnboardingId) : undefined);
+      res.json(feedback);
+    } catch (error) {
+      console.error("Error fetching feedback:", error);
+      res.status(500).json({ message: "Failed to fetch feedback" });
+    }
+  });
+
+  // ===== ACHIEVEMENT SYSTEM ROUTES =====
+  
+  // Get all available achievements
+  app.get("/api/onboarding/achievements", isAuthenticated, async (req, res) => {
+    try {
+      const achievements = await storage.getAchievements();
+      res.json(achievements);
+    } catch (error) {
+      console.error("Error fetching achievements:", error);
+      res.status(500).json({ message: "Failed to fetch achievements" });
+    }
+  });
+
+  // Get user's earned achievements
+  app.get("/api/onboarding/user-achievements", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const userAchievements = await storage.getUserAchievements(userId);
+      res.json(userAchievements);
+    } catch (error) {
+      console.error("Error fetching user achievements:", error);
+      res.status(500).json({ message: "Failed to fetch user achievements" });
+    }
+  });
+
+  // Award achievement to user (admin only)
+  app.post("/api/onboarding/award-achievement", isAuthenticated, async (req: any, res) => {
+    try {
+      const adminUser = await storage.getUser(req.user.claims.sub);
+      if (adminUser?.role !== 'admin' && adminUser?.role !== 'hr') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const { userId, achievementId, candidateOnboardingId } = req.body;
+      const award = await storage.awardAchievement(userId, achievementId, candidateOnboardingId);
+      res.json(award);
+    } catch (error) {
+      console.error("Error awarding achievement:", error);
+      res.status(500).json({ message: "Failed to award achievement" });
+    }
+  });
+
+  // ===== CALENDAR EVENTS ROUTES =====
+  
+  // Create onboarding event
+  app.post("/api/onboarding/events", isAuthenticated, async (req: any, res) => {
+    try {
+      const adminUser = await storage.getUser(req.user.claims.sub);
+      if (adminUser?.role !== 'admin' && adminUser?.role !== 'hr') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const eventData = {
+        ...req.body,
+        createdBy: req.user.claims.sub
+      };
+      const event = await storage.createOnboardingEvent(eventData);
+      res.json(event);
+    } catch (error) {
+      console.error("Error creating event:", error);
+      res.status(500).json({ message: "Failed to create event" });
+    }
+  });
+
+  // Get onboarding events
+  app.get("/api/onboarding/events", isAuthenticated, async (req: any, res) => {
+    try {
+      const { candidateOnboardingId } = req.query;
+      const events = await storage.getOnboardingEvents(candidateOnboardingId ? parseInt(candidateOnboardingId) : undefined);
+      res.json(events);
+    } catch (error) {
+      console.error("Error fetching events:", error);
+      res.status(500).json({ message: "Failed to fetch events" });
+    }
+  });
+
+  // Update onboarding event
+  app.put("/api/onboarding/events/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const adminUser = await storage.getUser(req.user.claims.sub);
+      if (adminUser?.role !== 'admin' && adminUser?.role !== 'hr') {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const eventId = parseInt(req.params.id);
+      const updatedEvent = await storage.updateOnboardingEvent(eventId, req.body);
+      res.json(updatedEvent);
+    } catch (error) {
+      console.error("Error updating event:", error);
+      res.status(500).json({ message: "Failed to update event" });
+    }
+  });
+
+  // Initialize default achievements on startup
+  try {
+    await storage.initializeDefaultAchievements();
+  } catch (error) {
+    console.log("Achievements initialization:", error);
+  }
+
   const httpServer = createServer(app);
   return httpServer;
 }

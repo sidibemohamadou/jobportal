@@ -22,6 +22,9 @@ import UserManagement from "@/pages/UserManagement";
 import PayrollManagement from "@/pages/PayrollManagement";
 import OnboardingManagement from "@/pages/OnboardingManagement";
 import CandidateOnboarding from "@/pages/CandidateOnboarding";
+import OnboardingFeedback from "@/pages/OnboardingFeedback";
+import AchievementsPage from "@/pages/AchievementsPage";
+import OnboardingCalendar from "@/pages/OnboardingCalendar";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -52,7 +55,10 @@ function Router() {
               <Route path="/profile" component={Profile} />
               <Route path="/applications" component={Applications} />
               <Route path="/jobs" component={Landing} />
-              <Route path="/onboarding" component={CandidateOnboarding} />
+              <Route path="/candidate-onboarding" component={CandidateOnboarding} />
+              <Route path="/onboarding-feedback" component={OnboardingFeedback} />
+              <Route path="/achievements" component={AchievementsPage} />
+              <Route path="/onboarding-calendar" component={OnboardingCalendar} />
             </>
           )}
           

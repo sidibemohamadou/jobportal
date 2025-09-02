@@ -318,6 +318,65 @@ export const onboardingCommunications = pgTable("onboarding_communications", {
   createdAt: timestamp("created_at").defaultNow()
 });
 
+// Onboarding feedback from candidates
+export const onboardingFeedback = pgTable("onboarding_feedback", {
+  id: serial("id").primaryKey(),
+  candidateOnboardingId: integer("candidate_onboarding_id").references(() => candidateOnboarding.id).notNull(),
+  userId: varchar("user_id", { length: 255 }).notNull(),
+  stepId: integer("step_id").references(() => onboardingSteps.id),
+  overallRating: integer("overall_rating").notNull(), // 1-5 stars
+  stepRating: integer("step_rating"), // 1-5 stars for specific step
+  clarity: integer("clarity").notNull(), // 1-5 stars
+  support: integer("support").notNull(), // 1-5 stars  
+  usefulness: integer("usefulness").notNull(), // 1-5 stars
+  comments: text("comments"),
+  suggestions: text("suggestions"),
+  wouldRecommend: boolean("would_recommend"),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+// Onboarding achievements/badges
+export const onboardingAchievements = pgTable("onboarding_achievements", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  icon: varchar("icon", { length: 100 }), // lucide icon name
+  category: varchar("category", { length: 50 }), // speed, quality, engagement, milestone
+  criteria: text("criteria"), // JSON criteria for earning
+  points: integer("points").default(10),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+// User achievements tracking
+export const userAchievements = pgTable("user_achievements", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id", { length: 255 }).notNull(),
+  achievementId: integer("achievement_id").references(() => onboardingAchievements.id).notNull(),
+  candidateOnboardingId: integer("candidate_onboarding_id").references(() => candidateOnboarding.id),
+  earnedAt: timestamp("earned_at").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+// Calendar events for onboarding
+export const onboardingEvents = pgTable("onboarding_events", {
+  id: serial("id").primaryKey(),
+  candidateOnboardingId: integer("candidate_onboarding_id").references(() => candidateOnboarding.id).notNull(),
+  stepId: integer("step_id").references(() => onboardingSteps.id),
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description"),
+  eventType: varchar("event_type", { length: 50 }), // training, meeting, deadline, review
+  startDateTime: timestamp("start_date_time").notNull(),
+  endDateTime: timestamp("end_date_time"),
+  location: varchar("location", { length: 255 }),
+  attendees: text("attendees").array(), // user IDs
+  isRecurring: boolean("is_recurring").default(false),
+  status: varchar("status", { length: 20 }).default("scheduled"), // scheduled, completed, cancelled
+  createdBy: varchar("created_by", { length: 255 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
 // Export schemas for validation
 export const insertJobSchema = createInsertSchema(jobs).omit({
   id: true,
@@ -405,6 +464,27 @@ export const insertOnboardingCommunicationSchema = createInsertSchema(onboarding
   createdAt: true,
 });
 
+export const insertOnboardingFeedbackSchema = createInsertSchema(onboardingFeedback).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertOnboardingAchievementSchema = createInsertSchema(onboardingAchievements).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertUserAchievementSchema = createInsertSchema(userAchievements).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertOnboardingEventSchema = createInsertSchema(onboardingEvents).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Export types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -442,3 +522,11 @@ export type OnboardingNotification = typeof onboardingNotifications.$inferSelect
 export type InsertOnboardingNotification = z.infer<typeof insertOnboardingNotificationSchema>;
 export type OnboardingCommunication = typeof onboardingCommunications.$inferSelect;
 export type InsertOnboardingCommunication = z.infer<typeof insertOnboardingCommunicationSchema>;
+export type OnboardingFeedback = typeof onboardingFeedback.$inferSelect;
+export type InsertOnboardingFeedback = z.infer<typeof insertOnboardingFeedbackSchema>;
+export type OnboardingAchievement = typeof onboardingAchievements.$inferSelect;
+export type InsertOnboardingAchievement = z.infer<typeof insertOnboardingAchievementSchema>;
+export type UserAchievement = typeof userAchievements.$inferSelect;
+export type InsertUserAchievement = z.infer<typeof insertUserAchievementSchema>;
+export type OnboardingEvent = typeof onboardingEvents.$inferSelect;
+export type InsertOnboardingEvent = z.infer<typeof insertOnboardingEventSchema>;

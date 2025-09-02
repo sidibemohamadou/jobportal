@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
+import { Link } from "wouter";
 import { 
   CheckCircle, 
   Clock, 
@@ -19,7 +20,10 @@ import {
   Calendar,
   User,
   Target,
-  MessageCircle
+  MessageCircle,
+  Trophy,
+  Star,
+  ArrowRight
 } from "lucide-react";
 
 interface OnboardingStep {
@@ -190,6 +194,60 @@ export default function CandidateOnboarding() {
               <p className="text-muted-foreground">Suivez votre progression d'intégration</p>
             </div>
           </div>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <Link to="/achievements">
+            <Card className="cursor-pointer hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-4">
+                  <div className="p-3 rounded-full bg-yellow-100">
+                    <Trophy className="h-6 w-6 text-yellow-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold">Mes Badges</h3>
+                    <p className="text-sm text-muted-foreground">Découvrez vos achievements</p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link to="/onboarding-calendar">
+            <Card className="cursor-pointer hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-4">
+                  <div className="p-3 rounded-full bg-blue-100">
+                    <Calendar className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold">Calendrier</h3>
+                    <p className="text-sm text-muted-foreground">Planifiez vos événements</p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link to="/onboarding-feedback">
+            <Card className="cursor-pointer hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-4">
+                  <div className="p-3 rounded-full bg-green-100">
+                    <Star className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-semibold">Feedback</h3>
+                    <p className="text-sm text-muted-foreground">Évaluez votre expérience</p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
         </div>
 
         {/* Progress Overview */}
