@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/Landing";
 import CandidateLogin from "@/pages/CandidateLogin";
+import AdminLogin from "@/pages/AdminLogin";
 import CandidateDashboard from "@/pages/CandidateDashboard";
 import Profile from "@/pages/Profile";
 import Applications from "@/pages/Applications";
@@ -48,7 +49,8 @@ function Router() {
       {!isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
-          <Route path="/candidate-login" component={CandidateLogin} />
+          <Route path="/login" component={CandidateLogin} />
+          <Route path="/admin/login" component={AdminLogin} />
           <Route path="/candidate-invitation/:token" component={CandidateInvitationHandler} />
         </>
       ) : (

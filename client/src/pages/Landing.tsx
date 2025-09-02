@@ -50,7 +50,7 @@ export default function Landing() {
 
   const handleApply = (job: Job) => {
     // Redirection vers la page de connexion candidat
-    window.location.href = "/candidate-login";
+    window.location.href = "/login";
   };
 
   const handleContractFilter = (contractType: string, checked: boolean) => {

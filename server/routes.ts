@@ -22,8 +22,14 @@ import {
 import { ObjectPermission } from "./objectAcl";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware
+  // Import des nouvelles routes d'authentification
+  const { registerAuthRoutes } = await import("./authRoutes");
+  
+  // Auth middleware (Replit Auth - optionnel maintenant)
   await setupAuth(app);
+  
+  // Enregistrer les nouvelles routes d'authentification email/password
+  registerAuthRoutes(app);
 
   // Auth routes
   app.get("/api/auth/user", isAuthenticated, async (req: any, res) => {

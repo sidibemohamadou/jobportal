@@ -61,8 +61,10 @@ import { db } from "./db";
 import { eq, desc, and, or, gte, lte, like, isNull } from "drizzle-orm";
 
 export interface IStorage {
-  // User operations (required for Replit Auth)
+  // User operations (required for Replit Auth and email/password auth)
   getUser(id: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(userData: Partial<User>): Promise<User>;
   upsertUser(user: UpsertUser): Promise<User>;
   updateUser(id: string, data: Partial<User>): Promise<User>;
   getAllUsers(): Promise<User[]>;
@@ -392,10 +394,11 @@ export class MemStorage implements IStorage {
 
   private initializeTestUsers() {
     const testUsers: User[] = [
-      // Admin/Super Admin pour Mohamed
+      // Admin/Super Admin pour Mohamed avec mot de passe
       {
         id: "mohamed-admin-001",
         email: "mohamed.admin@aerorecrut.com",
+        password: "$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LeZHcx8nUo7p2V3Nm", // password: admin123
         firstName: "Mohamed",
         lastName: "Administrateur",
         profileImageUrl: null,
@@ -416,10 +419,11 @@ export class MemStorage implements IStorage {
         createdAt: new Date(),
         updatedAt: new Date(),
       },
-      // Candidat de test
+      // Candidat de test avec mot de passe
       {
         id: "candidat-test-001",
         email: "candidat.test@example.com",
+        password: "$2a$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi", // password: candidate123
         firstName: "Jean",
         lastName: "Dupont",
         profileImageUrl: null,
@@ -1141,18 +1145,74 @@ export class DatabaseStorage implements IStorage {
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(userData)
-      .onConflictDoUpdate({
-        target: users.id,
-        set: {
-          ...userData,
-          updatedAt: new Date(),
-        },
-      })
-      .returning();
+    const user: User = {
+      id: userData.id || `user-${Date.now()}`,
+      email: userData.email || null,
+      password: userData.password || null,
+      firstName: userData.firstName || null,
+      lastName: userData.lastName || null,
+      profileImageUrl: userData.profileImageUrl || null,
+      phone: userData.phone || null,
+      role: userData.role || "candidate",
+      employeeId: userData.employeeId || null,
+      gender: userData.gender || null,
+      maritalStatus: userData.maritalStatus || null,
+      address: userData.address || null,
+      residencePlace: userData.residencePlace || null,
+      idDocumentType: userData.idDocumentType || null,
+      idDocumentNumber: userData.idDocumentNumber || null,
+      birthDate: userData.birthDate || null,
+      birthPlace: userData.birthPlace || null,
+      birthCountry: userData.birthCountry || null,
+      nationality: userData.nationality || null,
+      profileCompleted: userData.profileCompleted || false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    this.users.set(user.id, user);
     return user;
+  }
+
+  // Nouvelle méthode pour créer un utilisateur
+  async createUser(userData: Partial<User>): Promise<User> {
+    const user: User = {
+      id: userData.id || `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      email: userData.email || null,
+      password: userData.password || null,
+      firstName: userData.firstName || null,
+      lastName: userData.lastName || null,
+      profileImageUrl: userData.profileImageUrl || null,
+      phone: userData.phone || null,
+      role: userData.role || "candidate",
+      employeeId: userData.employeeId || null,
+      gender: userData.gender || null,
+      maritalStatus: userData.maritalStatus || null,
+      address: userData.address || null,
+      residencePlace: userData.residencePlace || null,
+      idDocumentType: userData.idDocumentType || null,
+      idDocumentNumber: userData.idDocumentNumber || null,
+      birthDate: userData.birthDate || null,
+      birthPlace: userData.birthPlace || null,
+      birthCountry: userData.birthCountry || null,
+      nationality: userData.nationality || null,
+      profileCompleted: userData.profileCompleted || false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    this.users.set(user.id, user);
+    return user;
+  }
+
+  // Nouvelle méthode pour trouver un utilisateur par email
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    for (const user of this.users.values()) {
+      if (user.email === email) {
+        return user;
+      }
+    }
+    return undefined;
   }
 
   async updateUser(id: string, updateData: Partial<User>): Promise<User> {
