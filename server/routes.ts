@@ -5,6 +5,11 @@ import { registerAuthRoutes } from "./authRoutes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   const { createServer } = await import("http");
+  
+  // Configuration des sessions (nécessaire pour l'authentification)
+  const { getSession } = await import("./replitAuth");
+  app.use(getSession());
+  
   // Enregistrer les routes d'authentification email/password
   registerAuthRoutes(app);
 

@@ -38,6 +38,10 @@ export function registerAuthRoutes(app: Express) {
       }
 
       // Créer une session
+      if (!req.session) {
+        console.error("Session not available. Session middleware may not be properly configured.");
+        return res.status(500).json({ message: "Configuration de session manquante" });
+      }
       (req.session as any).user = user;
       
       // Redirection selon le rôle
@@ -71,6 +75,10 @@ export function registerAuthRoutes(app: Express) {
       }
 
       // Créer une session
+      if (!req.session) {
+        console.error("Session not available. Session middleware may not be properly configured.");
+        return res.status(500).json({ message: "Configuration de session manquante" });
+      }
       (req.session as any).user = user;
       
       res.status(201).json({ 
@@ -114,6 +122,10 @@ export function registerAuthRoutes(app: Express) {
       }
 
       // Créer une session
+      if (!req.session) {
+        console.error("Session not available. Session middleware may not be properly configured.");
+        return res.status(500).json({ message: "Configuration de session manquante" });
+      }
       (req.session as any).user = user;
       
       // Redirection selon le rôle
