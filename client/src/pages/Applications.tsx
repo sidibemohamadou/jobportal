@@ -24,6 +24,7 @@ import { LanguageSelector } from "@/components/LanguageSelector";
 import { formatDistanceToNow } from "date-fns";
 import { fr, enUS, pt } from "date-fns/locale";
 import { getLanguage } from "@/lib/i18n";
+import { ApplicationTimeline } from "@/components/ApplicationTimeline";
 
 const locales = {
   fr: fr,
@@ -277,7 +278,7 @@ export default function Applications() {
                       </div>
                     )}
                     
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center mb-6">
                       <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                         {application.salaryExpectation && (
                           <span data-testid={`text-salary-expectation-${application.id}`}>
@@ -299,6 +300,11 @@ export default function Applications() {
                         <Eye className="h-4 w-4" />
                         <span>Voir détails</span>
                       </Button>
+                    </div>
+                    
+                    {/* Timeline de suivi pour chaque candidature */}
+                    <div className="border-t pt-6">
+                      <ApplicationTimeline application={application} />
                     </div>
                   </CardContent>
                 </Card>

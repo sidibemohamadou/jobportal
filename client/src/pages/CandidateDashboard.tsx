@@ -27,6 +27,7 @@ import { LanguageSelector } from "@/components/LanguageSelector";
 import { formatDistanceToNow } from "date-fns";
 import { fr, enUS, pt } from "date-fns/locale";
 import { getLanguage } from "@/lib/i18n";
+import { ApplicationTimeline } from "@/components/ApplicationTimeline";
 
 const locales = {
   fr: fr,
@@ -275,6 +276,13 @@ export default function CandidateDashboard() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Timeline de candidature principale */}
+          {recentApplications.length > 0 && (
+            <div className="mb-8">
+              <ApplicationTimeline application={recentApplications[0]} />
+            </div>
+          )}
           
           {/* Recent Applications and Profile Completion */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
