@@ -168,6 +168,42 @@ export interface IStorage {
   createOnboardingEvent(event: InsertOnboardingEvent): Promise<OnboardingEvent>;
   getOnboardingEvents(candidateOnboardingId?: number): Promise<OnboardingEvent[]>;
   updateOnboardingEvent(id: number, data: Partial<OnboardingEvent>): Promise<OnboardingEvent>;
+  
+  // Interview Management
+  createInterview(interview: any): Promise<any>;
+  getInterviews(): Promise<any[]>;
+  updateInterview(id: number, data: any): Promise<any>;
+  
+  // Interview Evaluations
+  createInterviewEvaluation(evaluation: any): Promise<any>;
+  getInterviewEvaluations(interviewId: number): Promise<any[]>;
+  
+  // Interview Feedback
+  createInterviewFeedback(feedback: any): Promise<any>;
+  getInterviewFeedback(interviewId: number): Promise<any[]>;
+  
+  // Performance Management
+  createPerformanceReview(review: any): Promise<any>;
+  getPerformanceReviews(): Promise<any[]>;
+  updatePerformanceReview(id: number, data: any): Promise<any>;
+  
+  // Training Management
+  createTrainingProgram(program: any): Promise<any>;
+  getTrainingPrograms(): Promise<any[]>;
+  createEmployeeTraining(training: any): Promise<any>;
+  getEmployeeTraining(): Promise<any[]>;
+  
+  // Disciplinary Actions
+  createDisciplinaryAction(action: any): Promise<any>;
+  getDisciplinaryActions(): Promise<any[]>;
+  
+  // Employee Documents
+  createEmployeeDocument(document: any): Promise<any>;
+  getEmployeeDocuments(): Promise<any[]>;
+  
+  // Time Tracking
+  createTimeEntry(entry: any): Promise<any>;
+  getTimeEntries(): Promise<any[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -1830,6 +1866,114 @@ export class DatabaseStorage implements IStorage {
     for (const achievement of defaultAchievements) {
       await this.createAchievement(achievement);
     }
+  }
+  
+  // Interview Management stubs (temporary implementations for interface compliance)
+  async createInterview(interview: any): Promise<any> {
+    // TODO: Implement with actual database tables
+    return { id: 1, ...interview };
+  }
+  
+  async getInterviews(): Promise<any[]> {
+    // TODO: Implement with actual database tables
+    return [];
+  }
+  
+  async updateInterview(id: number, data: any): Promise<any> {
+    // TODO: Implement with actual database tables
+    return { id, ...data };
+  }
+  
+  // Interview Evaluations stubs
+  async createInterviewEvaluation(evaluation: any): Promise<any> {
+    // TODO: Implement with actual database tables
+    return { id: 1, ...evaluation };
+  }
+  
+  async getInterviewEvaluations(interviewId: number): Promise<any[]> {
+    // TODO: Implement with actual database tables
+    return [];
+  }
+  
+  // Interview Feedback stubs
+  async createInterviewFeedback(feedback: any): Promise<any> {
+    // TODO: Implement with actual database tables
+    return { id: 1, ...feedback };
+  }
+  
+  async getInterviewFeedback(interviewId: number): Promise<any[]> {
+    // TODO: Implement with actual database tables
+    return [];
+  }
+  
+  // Performance Management stubs
+  async createPerformanceReview(review: any): Promise<any> {
+    // TODO: Implement with actual database tables
+    return { id: 1, ...review };
+  }
+  
+  async getPerformanceReviews(): Promise<any[]> {
+    // TODO: Implement with actual database tables
+    return [];
+  }
+  
+  async updatePerformanceReview(id: number, data: any): Promise<any> {
+    // TODO: Implement with actual database tables
+    return { id, ...data };
+  }
+  
+  // Training Management stubs
+  async createTrainingProgram(program: any): Promise<any> {
+    // TODO: Implement with actual database tables
+    return { id: 1, ...program };
+  }
+  
+  async getTrainingPrograms(): Promise<any[]> {
+    // TODO: Implement with actual database tables
+    return [];
+  }
+  
+  async createEmployeeTraining(training: any): Promise<any> {
+    // TODO: Implement with actual database tables
+    return { id: 1, ...training };
+  }
+  
+  async getEmployeeTraining(): Promise<any[]> {
+    // TODO: Implement with actual database tables
+    return [];
+  }
+  
+  // Disciplinary Actions stubs
+  async createDisciplinaryAction(action: any): Promise<any> {
+    // TODO: Implement with actual database tables
+    return { id: 1, ...action };
+  }
+  
+  async getDisciplinaryActions(): Promise<any[]> {
+    // TODO: Implement with actual database tables
+    return [];
+  }
+  
+  // Employee Documents stubs
+  async createEmployeeDocument(document: any): Promise<any> {
+    // TODO: Implement with actual database tables
+    return { id: 1, ...document };
+  }
+  
+  async getEmployeeDocuments(): Promise<any[]> {
+    // TODO: Implement with actual database tables
+    return [];
+  }
+  
+  // Time Tracking stubs
+  async createTimeEntry(entry: any): Promise<any> {
+    // TODO: Implement with actual database tables
+    return { id: 1, ...entry };
+  }
+  
+  async getTimeEntries(): Promise<any[]> {
+    // TODO: Implement with actual database tables
+    return [];
   }
 }
 

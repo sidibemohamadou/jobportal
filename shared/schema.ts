@@ -377,6 +377,165 @@ export const onboardingEvents = pgTable("onboarding_events", {
   updatedAt: timestamp("updated_at").defaultNow()
 });
 
+// Interview sessions for candidate evaluation
+export const interviews = pgTable("interviews", {
+  id: serial("id").primaryKey(),
+  candidateId: varchar("candidate_id", { length: 255 }).notNull(),
+  applicationId: integer("application_id").references(() => applications.id),
+  interviewerId: varchar("interviewer_id", { length: 255 }).notNull(),
+  interviewType: varchar("interview_type", { length: 50 }).notNull(), // phone, video, onsite, technical
+  scheduledDateTime: timestamp("scheduled_date_time").notNull(),
+  duration: integer("duration").notNull(), // in minutes
+  location: varchar("location", { length: 255 }),
+  meetingLink: varchar("meeting_link", { length: 500 }),
+  status: varchar("status", { length: 20 }).default("scheduled"), // scheduled, completed, cancelled, no_show
+  notes: text("notes"),
+  createdBy: varchar("created_by", { length: 255 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+// Interview evaluations and scoring
+export const interviewEvaluations = pgTable("interview_evaluations", {
+  id: serial("id").primaryKey(),
+  interviewId: integer("interview_id").references(() => interviews.id).notNull(),
+  criteriaName: varchar("criteria_name", { length: 255 }).notNull(), // Technical Skills, Communication, Problem Solving, etc.
+  score: integer("score").notNull(), // 1-10 scale
+  maxScore: integer("max_score").default(10),
+  comments: text("comments"),
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+// Overall interview feedback
+export const interviewFeedback = pgTable("interview_feedback", {
+  id: serial("id").primaryKey(),
+  interviewId: integer("interview_id").references(() => interviews.id).notNull(),
+  overallScore: integer("overall_score").notNull(), // 1-100
+  recommendation: varchar("recommendation", { length: 50 }).notNull(), // hire, reject, second_interview
+  strengths: text("strengths"),
+  weaknesses: text("weaknesses"),
+  detailedFeedback: text("detailed_feedback"),
+  culturalFit: integer("cultural_fit"), // 1-10 scale
+  technicalCompetency: integer("technical_competency"), // 1-10 scale
+  communicationSkills: integer("communication_skills"), // 1-10 scale
+  problemSolving: integer("problem_solving"), // 1-10 scale
+  createdAt: timestamp("created_at").defaultNow()
+});
+
+// Employee performance reviews
+export const performanceReviews = pgTable("performance_reviews", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").references(() => employees.id).notNull(),
+  reviewerId: varchar("reviewer_id", { length: 255 }).notNull(),
+  reviewPeriod: varchar("review_period", { length: 100 }).notNull(), // Q1 2024, Annual 2024, etc.
+  reviewType: varchar("review_type", { length: 50 }).default("annual"), // annual, quarterly, probation
+  overallRating: integer("overall_rating").notNull(), // 1-5 scale
+  goals: text("goals"),
+  achievements: text("achievements"),
+  areasForImprovement: text("areas_for_improvement"),
+  developmentPlan: text("development_plan"),
+  managerComments: text("manager_comments"),
+  employeeComments: text("employee_comments"),
+  status: varchar("status", { length: 20 }).default("draft"), // draft, completed, acknowledged
+  reviewDate: timestamp("review_date").notNull(),
+  nextReviewDate: timestamp("next_review_date"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+// Training programs and courses
+export const trainingPrograms = pgTable("training_programs", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  category: varchar("category", { length: 100 }), // safety, technical, compliance, leadership
+  duration: integer("duration"), // in hours
+  isRequired: boolean("is_required").default(false),
+  expirationMonths: integer("expiration_months"), // how many months before recertification needed
+  provider: varchar("provider", { length: 255 }),
+  cost: varchar("cost", { length: 50 }),
+  maxParticipants: integer("max_participants"),
+  isActive: boolean("is_active").default(true),
+  createdBy: varchar("created_by", { length: 255 }).notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+// Employee training records
+export const employeeTraining = pgTable("employee_training", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").references(() => employees.id).notNull(),
+  trainingProgramId: integer("training_program_id").references(() => trainingPrograms.id).notNull(),
+  status: varchar("status", { length: 20 }).default("enrolled"), // enrolled, in_progress, completed, failed
+  enrollmentDate: timestamp("enrollment_date").defaultNow(),
+  startDate: timestamp("start_date"),
+  completionDate: timestamp("completion_date"),
+  expirationDate: timestamp("expiration_date"),
+  score: integer("score"), // percentage score if applicable
+  certificate: varchar("certificate", { length: 500 }), // path to certificate file
+  assignedBy: varchar("assigned_by", { length: 255 }).notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+// Disciplinary actions
+export const disciplinaryActions = pgTable("disciplinary_actions", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").references(() => employees.id).notNull(),
+  actionType: varchar("action_type", { length: 50 }).notNull(), // verbal_warning, written_warning, suspension, termination
+  reason: varchar("reason", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  actionDate: timestamp("action_date").notNull(),
+  issuedBy: varchar("issued_by", { length: 255 }).notNull(),
+  witnessedBy: varchar("witnessed_by", { length: 255 }),
+  followUpRequired: boolean("follow_up_required").default(false),
+  followUpDate: timestamp("follow_up_date"),
+  employeeResponse: text("employee_response"),
+  status: varchar("status", { length: 20 }).default("active"), // active, resolved, appealed
+  attachments: text("attachments").array(), // document paths
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+// Employee documents management
+export const employeeDocuments = pgTable("employee_documents", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").references(() => employees.id).notNull(),
+  documentType: varchar("document_type", { length: 100 }).notNull(), // contract, id_copy, diploma, certificate
+  documentName: varchar("document_name", { length: 255 }).notNull(),
+  filePath: varchar("file_path", { length: 500 }).notNull(),
+  uploadedBy: varchar("uploaded_by", { length: 255 }).notNull(),
+  isConfidential: boolean("is_confidential").default(true),
+  expirationDate: timestamp("expiration_date"),
+  tags: text("tags").array(),
+  notes: text("notes"),
+  fileSize: integer("file_size"), // in bytes
+  mimeType: varchar("mime_type", { length: 100 }),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+// Time tracking and attendance
+export const timeEntries = pgTable("time_entries", {
+  id: serial("id").primaryKey(),
+  employeeId: integer("employee_id").references(() => employees.id).notNull(),
+  entryDate: timestamp("entry_date").notNull(),
+  clockIn: timestamp("clock_in"),
+  clockOut: timestamp("clock_out"),
+  breakStart: timestamp("break_start"),
+  breakEnd: timestamp("break_end"),
+  totalHours: varchar("total_hours", { length: 10 }), // HH:MM format
+  overtimeHours: varchar("overtime_hours", { length: 10 }), // HH:MM format
+  entryType: varchar("entry_type", { length: 20 }).default("regular"), // regular, overtime, holiday
+  location: varchar("location", { length: 255 }),
+  notes: text("notes"),
+  approvedBy: varchar("approved_by", { length: 255 }),
+  status: varchar("status", { length: 20 }).default("pending"), // pending, approved, rejected
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
 // Export schemas for validation
 export const insertJobSchema = createInsertSchema(jobs).omit({
   id: true,
@@ -485,6 +644,58 @@ export const insertOnboardingEventSchema = createInsertSchema(onboardingEvents).
   updatedAt: true,
 });
 
+export const insertInterviewSchema = createInsertSchema(interviews).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertInterviewEvaluationSchema = createInsertSchema(interviewEvaluations).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertInterviewFeedbackSchema = createInsertSchema(interviewFeedback).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertPerformanceReviewSchema = createInsertSchema(performanceReviews).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTrainingProgramSchema = createInsertSchema(trainingPrograms).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertEmployeeTrainingSchema = createInsertSchema(employeeTraining).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertDisciplinaryActionSchema = createInsertSchema(disciplinaryActions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertEmployeeDocumentSchema = createInsertSchema(employeeDocuments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTimeEntrySchema = createInsertSchema(timeEntries).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Export types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -530,3 +741,21 @@ export type UserAchievement = typeof userAchievements.$inferSelect;
 export type InsertUserAchievement = z.infer<typeof insertUserAchievementSchema>;
 export type OnboardingEvent = typeof onboardingEvents.$inferSelect;
 export type InsertOnboardingEvent = z.infer<typeof insertOnboardingEventSchema>;
+export type Interview = typeof interviews.$inferSelect;
+export type InsertInterview = z.infer<typeof insertInterviewSchema>;
+export type InterviewEvaluation = typeof interviewEvaluations.$inferSelect;
+export type InsertInterviewEvaluation = z.infer<typeof insertInterviewEvaluationSchema>;
+export type InterviewFeedback = typeof interviewFeedback.$inferSelect;
+export type InsertInterviewFeedback = z.infer<typeof insertInterviewFeedbackSchema>;
+export type PerformanceReview = typeof performanceReviews.$inferSelect;
+export type InsertPerformanceReview = z.infer<typeof insertPerformanceReviewSchema>;
+export type TrainingProgram = typeof trainingPrograms.$inferSelect;
+export type InsertTrainingProgram = z.infer<typeof insertTrainingProgramSchema>;
+export type EmployeeTraining = typeof employeeTraining.$inferSelect;
+export type InsertEmployeeTraining = z.infer<typeof insertEmployeeTrainingSchema>;
+export type DisciplinaryAction = typeof disciplinaryActions.$inferSelect;
+export type InsertDisciplinaryAction = z.infer<typeof insertDisciplinaryActionSchema>;
+export type EmployeeDocument = typeof employeeDocuments.$inferSelect;
+export type InsertEmployeeDocument = z.infer<typeof insertEmployeeDocumentSchema>;
+export type TimeEntry = typeof timeEntries.$inferSelect;
+export type InsertTimeEntry = z.infer<typeof insertTimeEntrySchema>;

@@ -25,6 +25,8 @@ import CandidateOnboarding from "@/pages/CandidateOnboarding";
 import OnboardingFeedback from "@/pages/OnboardingFeedback";
 import AchievementsPage from "@/pages/AchievementsPage";
 import OnboardingCalendar from "@/pages/OnboardingCalendar";
+import InterviewManagement from "@/pages/InterviewManagement";
+import EmployeeManagement from "@/pages/EmployeeManagement";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -76,6 +78,8 @@ function Router() {
               <Route path="/hr" component={HRManagement} />
               <Route path="/admin/payroll" component={PayrollManagement} />
               <Route path="/admin/onboarding" component={OnboardingManagement} />
+              <Route path="/admin/interviews" component={InterviewManagement} />
+              <Route path="/admin/employees" component={EmployeeManagement} />
               {(user as any)?.role === "admin" && (
                 <Route path="/admin/users" component={UserManagement} />
               )}

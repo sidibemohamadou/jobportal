@@ -24,7 +24,9 @@ import {
   CheckCircle,
   X,
   Trash2,
-  UserCheck
+  UserCheck,
+  Building,
+  ArrowRight
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "wouter";
@@ -637,7 +639,7 @@ export default function AdminDashboard() {
           <TabsContent value="management" className="space-y-6">
             <h2 className="text-2xl font-bold">Gestion</h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <Link to="/admin/applications">
                 <Card className="cursor-pointer hover:shadow-lg transition-shadow">
                   <CardHeader>
@@ -681,6 +683,38 @@ export default function AdminDashboard() {
                   <CardContent>
                     <p className="text-sm text-muted-foreground">
                       Gérer l'intégration des nouveaux employés
+                    </p>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              <Link to="/admin/interviews">
+                <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5" />
+                      Entretiens
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      Évaluation et gestion des entretiens
+                    </p>
+                  </CardContent>
+                </Card>
+              </Link>
+
+              <Link to="/admin/employees">
+                <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Building className="h-5 w-5" />
+                      Gestion RH
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">
+                      Performance, formations et disciplines
                     </p>
                   </CardContent>
                 </Card>

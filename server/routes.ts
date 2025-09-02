@@ -2,7 +2,18 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertApplicationSchema } from "@shared/schema";
+import { 
+  insertApplicationSchema,
+  insertInterviewSchema,
+  insertInterviewEvaluationSchema,
+  insertInterviewFeedbackSchema,
+  insertPerformanceReviewSchema,
+  insertTrainingProgramSchema,
+  insertEmployeeTrainingSchema,
+  insertDisciplinaryActionSchema,
+  insertEmployeeDocumentSchema,
+  insertTimeEntrySchema
+} from "@shared/schema";
 import {
   ObjectStorageService,
   ObjectNotFoundError,
@@ -901,6 +912,155 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating event:", error);
       res.status(500).json({ message: "Failed to update event" });
+    }
+  });
+
+  // Interview Management Routes
+  app.get("/api/interviews", isAuthenticated, async (req, res) => {
+    try {
+      const interviews = await storage.getInterviews();
+      res.json(interviews);
+    } catch (error) {
+      console.error("Error fetching interviews:", error);
+      res.status(500).json({ message: "Failed to fetch interviews" });
+    }
+  });
+
+  app.post("/api/interviews", isAuthenticated, async (req: any, res) => {
+    try {
+      const interviewData = insertInterviewSchema.parse({
+        ...req.body,
+        createdBy: req.user?.claims?.sub
+      });
+      const interview = await storage.createInterview(interviewData);
+      res.status(201).json(interview);
+    } catch (error) {
+      console.error("Error creating interview:", error);
+      res.status(500).json({ message: "Failed to create interview" });
+    }
+  });
+
+  // Interview Evaluations
+  app.post("/api/interviews/evaluations", isAuthenticated, async (req, res) => {
+    try {
+      const evaluationData = insertInterviewEvaluationSchema.parse(req.body);
+      const evaluation = await storage.createInterviewEvaluation(evaluationData);
+      res.status(201).json(evaluation);
+    } catch (error) {
+      console.error("Error creating interview evaluation:", error);
+      res.status(500).json({ message: "Failed to create interview evaluation" });
+    }
+  });
+
+  // Interview Feedback
+  app.post("/api/interviews/feedback", isAuthenticated, async (req, res) => {
+    try {
+      const feedbackData = insertInterviewFeedbackSchema.parse(req.body);
+      const feedback = await storage.createInterviewFeedback(feedbackData);
+      res.status(201).json(feedback);
+    } catch (error) {
+      console.error("Error creating interview feedback:", error);
+      res.status(500).json({ message: "Failed to create interview feedback" });
+    }
+  });
+
+  // Performance Reviews
+  app.get("/api/performance-reviews", isAuthenticated, async (req, res) => {
+    try {
+      const reviews = await storage.getPerformanceReviews();
+      res.json(reviews);
+    } catch (error) {
+      console.error("Error fetching performance reviews:", error);
+      res.status(500).json({ message: "Failed to fetch performance reviews" });
+    }
+  });
+
+  app.post("/api/performance-reviews", isAuthenticated, async (req: any, res) => {
+    try {
+      const reviewData = insertPerformanceReviewSchema.parse({
+        ...req.body,
+        reviewerId: req.user?.claims?.sub
+      });
+      const review = await storage.createPerformanceReview(reviewData);
+      res.status(201).json(review);
+    } catch (error) {
+      console.error("Error creating performance review:", error);
+      res.status(500).json({ message: "Failed to create performance review" });
+    }
+  });
+
+  // Training Programs
+  app.get("/api/training-programs", isAuthenticated, async (req, res) => {
+    try {
+      const programs = await storage.getTrainingPrograms();
+      res.json(programs);
+    } catch (error) {
+      console.error("Error fetching training programs:", error);
+      res.status(500).json({ message: "Failed to fetch training programs" });
+    }
+  });
+
+  app.post("/api/training-programs", isAuthenticated, async (req: any, res) => {
+    try {
+      const programData = insertTrainingProgramSchema.parse({
+        ...req.body,
+        createdBy: req.user?.claims?.sub
+      });
+      const program = await storage.createTrainingProgram(programData);
+      res.status(201).json(program);
+    } catch (error) {
+      console.error("Error creating training program:", error);
+      res.status(500).json({ message: "Failed to create training program" });
+    }
+  });
+
+  // Employee Training Records
+  app.get("/api/employee-training", isAuthenticated, async (req, res) => {
+    try {
+      const trainings = await storage.getEmployeeTraining();
+      res.json(trainings);
+    } catch (error) {
+      console.error("Error fetching employee training:", error);
+      res.status(500).json({ message: "Failed to fetch employee training" });
+    }
+  });
+
+  app.post("/api/employee-training", isAuthenticated, async (req: any, res) => {
+    try {
+      const trainingData = insertEmployeeTrainingSchema.parse({
+        ...req.body,
+        assignedBy: req.user?.claims?.sub
+      });
+      const training = await storage.createEmployeeTraining(trainingData);
+      res.status(201).json(training);
+    } catch (error) {
+      console.error("Error creating employee training:", error);
+      res.status(500).json({ message: "Failed to create employee training" });
+    }
+  });
+
+  // Time Entries for employees
+  app.get("/api/time-entries", isAuthenticated, async (req, res) => {
+    try {
+      const entries = await storage.getTimeEntries();
+      res.json(entries);
+    } catch (error) {
+      console.error("Error fetching time entries:", error);
+      res.status(500).json({ message: "Failed to fetch time entries" });
+    }
+  });
+
+  app.post("/api/time-entries", isAuthenticated, async (req: any, res) => {
+    try {
+      const timeEntryData = insertTimeEntrySchema.parse({
+        ...req.body,
+        approvedBy: req.user?.claims?.sub
+      });
+      const timeEntry = await storage.createTimeEntry(timeEntryData);
+      res.status(201).json(timeEntry);
+    } catch (error) {
+      console.error("Error creating time entry:", error);
+      res.status(500).json({ message: "Failed to create time entry" });
     }
   });
 
