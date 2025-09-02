@@ -227,6 +227,7 @@ export class MemStorage implements IStorage {
     this.jobs = new Map();
     this.applications = new Map();
     this.initializeMockJobs();
+    this.initializeTestUsers();
   }
 
   private initializeMockJobs() {
@@ -284,6 +285,135 @@ export class MemStorage implements IStorage {
     });
   }
 
+  private initializeTestUsers() {
+    const testUsers: User[] = [
+      // Admin/Super Admin pour Mohamed
+      {
+        id: "mohamed-admin-001",
+        email: "mohamed.admin@aerorecrut.com",
+        firstName: "Mohamed",
+        lastName: "Administrateur",
+        profileImageUrl: null,
+        phone: "+33612345678",
+        role: "admin",
+        gender: "Homme",
+        maritalStatus: "Marié(e)",
+        address: "123 Avenue des Champs-Élysées, 75008 Paris",
+        residencePlace: "Paris",
+        idDocumentType: "CNI",
+        idDocumentNumber: "123456789",
+        birthDate: new Date("1980-01-15"),
+        birthPlace: "Paris",
+        birthCountry: "France",
+        nationality: "Française",
+        profileCompleted: true,
+        employeeId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      // Candidat de test
+      {
+        id: "candidat-test-001",
+        email: "candidat.test@example.com",
+        firstName: "Jean",
+        lastName: "Dupont",
+        profileImageUrl: null,
+        phone: "+33687654321",
+        role: "candidate",
+        gender: "Homme",
+        maritalStatus: "Célibataire",
+        address: "456 Rue de la République, 69000 Lyon",
+        residencePlace: "Lyon",
+        idDocumentType: "CNI",
+        idDocumentNumber: "987654321",
+        birthDate: new Date("1990-05-20"),
+        birthPlace: "Lyon",
+        birthCountry: "France",
+        nationality: "Française",
+        profileCompleted: true,
+        employeeId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      // RH de test
+      {
+        id: "rh-test-001",
+        email: "rh.test@aerorecrut.com",
+        firstName: "Marie",
+        lastName: "Martin",
+        profileImageUrl: null,
+        phone: "+33612987654",
+        role: "hr",
+        gender: "Femme",
+        maritalStatus: "Marié(e)",
+        address: "789 Boulevard Saint-Germain, 75006 Paris",
+        residencePlace: "Paris",
+        idDocumentType: "CNI",
+        idDocumentNumber: "456789123",
+        birthDate: new Date("1985-03-10"),
+        birthPlace: "Paris",
+        birthCountry: "France",
+        nationality: "Française",
+        profileCompleted: true,
+        employeeId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      // Recruteur de test
+      {
+        id: "recruteur-test-001",
+        email: "recruteur.test@aerorecrut.com",
+        firstName: "Pierre",
+        lastName: "Durand",
+        profileImageUrl: null,
+        phone: "+33698765432",
+        role: "recruiter",
+        gender: "Homme",
+        maritalStatus: "Célibataire",
+        address: "321 Rue Victor Hugo, 31000 Toulouse",
+        residencePlace: "Toulouse",
+        idDocumentType: "CNI",
+        idDocumentNumber: "789123456",
+        birthDate: new Date("1988-07-25"),
+        birthPlace: "Toulouse",
+        birthCountry: "France",
+        nationality: "Française",
+        profileCompleted: true,
+        employeeId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+      // Employé de test
+      {
+        id: "employe-test-001",
+        email: "employe.test@aerorecrut.com",
+        firstName: "Sophie",
+        lastName: "Bernard",
+        profileImageUrl: null,
+        phone: "+33654321987",
+        role: "employee",
+        gender: "Femme",
+        maritalStatus: "Union libre",
+        address: "654 Avenue de la Libération, 13000 Marseille",
+        residencePlace: "Marseille",
+        idDocumentType: "CNI",
+        idDocumentNumber: "321654987",
+        birthDate: new Date("1992-12-08"),
+        birthPlace: "Marseille",
+        birthCountry: "France",
+        nationality: "Française",
+        profileCompleted: true,
+        employeeId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }
+    ];
+
+    testUsers.forEach(user => {
+      this.users.set(user.id, user);
+    });
+  }
+
   // User operations
   async getUser(id: string): Promise<User | undefined> {
     return this.users.get(id);
@@ -299,6 +429,7 @@ export class MemStorage implements IStorage {
       profileImageUrl: userData.profileImageUrl || null,
       phone: userData.phone || null,
       role: userData.role || "candidate",
+      employeeId: userData.employeeId || null,
       gender: userData.gender || null,
       maritalStatus: userData.maritalStatus || null,
       address: userData.address || null,
