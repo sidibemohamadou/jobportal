@@ -1145,7 +1145,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
-    const user: User = {
+    const userToUpsert = {
       id: userData.id || `user-${Date.now()}`,
       email: userData.email || null,
       password: userData.password || null,
@@ -1170,13 +1170,28 @@ export class DatabaseStorage implements IStorage {
       updatedAt: new Date(),
     };
 
-    this.users.set(user.id, user);
+    const [user] = await db
+      .insert(users)
+      .values(userToUpsert)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          email: userToUpsert.email,
+          firstName: userToUpsert.firstName,
+          lastName: userToUpsert.lastName,
+          profileImageUrl: userToUpsert.profileImageUrl,
+          phone: userToUpsert.phone,
+          role: userToUpsert.role,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
     return user;
   }
 
   // Nouvelle méthode pour créer un utilisateur
   async createUser(userData: Partial<User>): Promise<User> {
-    const user: User = {
+    const userToCreate = {
       id: userData.id || `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       email: userData.email || null,
       password: userData.password || null,
@@ -1201,18 +1216,14 @@ export class DatabaseStorage implements IStorage {
       updatedAt: new Date(),
     };
 
-    this.users.set(user.id, user);
+    const [user] = await db.insert(users).values(userToCreate).returning();
     return user;
   }
 
   // Nouvelle méthode pour trouver un utilisateur par email
   async getUserByEmail(email: string): Promise<User | undefined> {
-    for (const user of this.users.values()) {
-      if (user.email === email) {
-        return user;
-      }
-    }
-    return undefined;
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
   }
 
   async updateUser(id: string, updateData: Partial<User>): Promise<User> {

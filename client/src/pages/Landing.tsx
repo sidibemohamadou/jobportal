@@ -70,15 +70,15 @@ export default function Landing() {
   };
 
   const contractTypeCounts = {
-    'CDI': jobs.filter(job => job.contractType === 'CDI').length,
-    'CDD': jobs.filter(job => job.contractType === 'CDD').length,
-    'Freelance': jobs.filter(job => job.contractType === 'Freelance').length,
+    'CDI': jobs.filter((job: Job) => job.contractType === 'CDI').length,
+    'CDD': jobs.filter((job: Job) => job.contractType === 'CDD').length,
+    'Freelance': jobs.filter((job: Job) => job.contractType === 'Freelance').length,
   };
 
   const experienceCounts = {
-    'Débutant': jobs.filter(job => job.experienceLevel === 'Débutant').length,
-    'Intermédiaire': jobs.filter(job => job.experienceLevel === 'Intermédiaire').length,
-    'Senior': jobs.filter(job => job.experienceLevel === 'Senior').length,
+    'Débutant': jobs.filter((job: Job) => job.experienceLevel === 'Débutant').length,
+    'Intermédiaire': jobs.filter((job: Job) => job.experienceLevel === 'Intermédiaire').length,
+    'Senior': jobs.filter((job: Job) => job.experienceLevel === 'Senior').length,
   };
 
   return (
@@ -307,7 +307,7 @@ export default function Landing() {
                 </Card>
               ) : (
                 <div className="space-y-4">
-                  {jobs.map((job) => (
+                  {jobs.map((job: Job) => (
                     <JobCard 
                       key={job.id} 
                       job={job} 
