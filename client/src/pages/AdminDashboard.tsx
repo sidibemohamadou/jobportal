@@ -26,7 +26,8 @@ import {
   Trash2,
   UserCheck,
   Building,
-  ArrowRight
+  ArrowRight,
+  Mail
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "wouter";

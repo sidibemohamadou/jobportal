@@ -69,7 +69,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/applications", requireAuth, async (req, res) => {
     try {
-      const userId = req.user?.id;
+      const userId = (req.user as any)?.id;
       if (!userId) {
         return res.status(401).json({ message: "User not authenticated" });
       }
@@ -133,7 +133,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.params.id;
       
       // Vérification des permissions
-      if (userId !== req.user?.id && !["admin", "hr"].includes(req.user?.role || "")) {
+      if (userId !== (req.user as any)?.id && !["admin", "hr"].includes((req.user as any)?.role || "")) {
         return res.status(403).json({ message: "Access denied" });
       }
 
