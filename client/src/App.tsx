@@ -46,11 +46,13 @@ function Router() {
 
   return (
     <Switch>
+      {/* Route admin/login toujours accessible */}
+      <Route path="/admin/login" component={AdminLogin} />
+      
       {!isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
           <Route path="/login" component={CandidateLogin} />
-          <Route path="/admin/login" component={AdminLogin} />
           <Route path="/candidate-invitation/:token" component={CandidateInvitationHandler} />
         </>
       ) : (
