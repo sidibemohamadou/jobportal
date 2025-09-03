@@ -35,7 +35,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Routes publiques - Jobs
   app.get("/api/jobs", async (req, res) => {
     try {
+      console.log("Fetching public jobs...");
       const jobs = await storage.getAllJobs();
+      console.log("Jobs found:", jobs.length);
       res.json(jobs);
     } catch (error) {
       console.error("Error fetching jobs:", error);
