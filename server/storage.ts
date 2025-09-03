@@ -597,7 +597,7 @@ export class MemStorage implements IStorage {
       salary: jobData.salary || null,
       experienceLevel: jobData.experienceLevel || null,
       skills: jobData.skills || null,
-      isActive: jobData.isActive || null,
+      isActive: jobData.isActive !== undefined ? jobData.isActive : 1, // Actif par défaut
       createdAt: new Date(),
       updatedAt: new Date(),
     };
