@@ -48,6 +48,20 @@ export default function JobManagement() {
     skills: [] as string[]
   });
 
+  // État pour la modal de création
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    title: "",
+    company: "",
+    location: "",
+    description: "",
+    requirements: "",
+    salary: "",
+    contractType: "",
+    experienceLevel: "",
+    skills: [] as string[]
+  });
+
   const { data: jobs = [], isLoading } = useQuery({
     queryKey: ["/api/admin/jobs"],
   });
@@ -122,6 +136,47 @@ export default function JobManagement() {
     }
   });
 
+  const createJobMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const response = await fetch('/api/admin/jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || 'Erreur lors de la création');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/jobs"] });
+      setIsCreateDialogOpen(false);
+      setCreateForm({
+        title: "",
+        company: "",
+        location: "",
+        description: "",
+        requirements: "",
+        salary: "",
+        contractType: "",
+        experienceLevel: "",
+        skills: []
+      });
+      toast({
+        title: "Succès",
+        description: "L'offre d'emploi a été créée avec succès",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Erreur",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
   const filteredJobs = jobs.filter((job: any) =>
     job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     job.company.toLowerCase().includes(searchQuery.toLowerCase())
@@ -180,6 +235,16 @@ export default function JobManagement() {
     });
   };
 
+  const handleCreateJob = () => {
+    const jobData = {
+      ...createForm,
+      skills: createForm.skills.filter(skill => skill.trim() !== ""),
+      isActive: true
+    };
+    
+    createJobMutation.mutate(jobData);
+  };
+
   const handleSkillChange = (index: number, value: string) => {
     const newSkills = [...editForm.skills];
     newSkills[index] = value;
@@ -193,6 +258,21 @@ export default function JobManagement() {
   const removeSkill = (index: number) => {
     const newSkills = editForm.skills.filter((_, i) => i !== index);
     setEditForm({ ...editForm, skills: newSkills });
+  };
+
+  const handleCreateSkillChange = (index: number, value: string) => {
+    const newSkills = [...createForm.skills];
+    newSkills[index] = value;
+    setCreateForm({ ...createForm, skills: newSkills });
+  };
+
+  const addCreateSkill = () => {
+    setCreateForm({ ...createForm, skills: [...createForm.skills, ""] });
+  };
+
+  const removeCreateSkill = (index: number) => {
+    const newSkills = createForm.skills.filter((_, i) => i !== index);
+    setCreateForm({ ...createForm, skills: newSkills });
   };
 
   const handleLogout = () => {
@@ -259,12 +339,14 @@ export default function JobManagement() {
         {/* Header Actions */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Gestion des Offres d'Emploi</h1>
-          <Link href="/admin">
-            <Button className="bg-primary text-primary-foreground" data-testid="button-new-job">
-              <Plus className="h-4 w-4 mr-2" />
-              Nouvelle Offre
-            </Button>
-          </Link>
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-primary text-primary-foreground" data-testid="button-new-job">
+                <Plus className="h-4 w-4 mr-2" />
+                Nouvelle Offre
+              </Button>
+            </DialogTrigger>
+          </Dialog>
         </div>
 
         {/* Search */}
@@ -531,6 +613,160 @@ export default function JobManagement() {
                 data-testid="button-save-job"
               >
                 {updateJobMutation.isPending ? 'Mise à jour...' : 'Sauvegarder'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de création d'offre */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Créer une nouvelle offre d'emploi</DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="create-title">Titre du poste *</Label>
+                <Input
+                  id="create-title"
+                  value={createForm.title}
+                  onChange={(e) => setCreateForm({ ...createForm, title: e.target.value })}
+                  placeholder="Ex: Développeur Full Stack"
+                />
+              </div>
+              <div>
+                <Label htmlFor="create-company">Entreprise *</Label>
+                <Input
+                  id="create-company"
+                  value={createForm.company}
+                  onChange={(e) => setCreateForm({ ...createForm, company: e.target.value })}
+                  placeholder="Ex: AeroTech Solutions"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="create-location">Localisation *</Label>
+                <Input
+                  id="create-location"
+                  value={createForm.location}
+                  onChange={(e) => setCreateForm({ ...createForm, location: e.target.value })}
+                  placeholder="Ex: Paris, France"
+                />
+              </div>
+              <div>
+                <Label htmlFor="create-salary">Salaire</Label>
+                <Input
+                  id="create-salary"
+                  value={createForm.salary}
+                  onChange={(e) => setCreateForm({ ...createForm, salary: e.target.value })}
+                  placeholder="Ex: 45000-60000€"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="create-contract">Type de contrat *</Label>
+                <Select value={createForm.contractType} onValueChange={(value) => setCreateForm({ ...createForm, contractType: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CDI">CDI</SelectItem>
+                    <SelectItem value="CDD">CDD</SelectItem>
+                    <SelectItem value="Freelance">Freelance</SelectItem>
+                    <SelectItem value="Stage">Stage</SelectItem>
+                    <SelectItem value="Apprentissage">Apprentissage</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="create-experience">Niveau d'expérience</Label>
+                <Select value={createForm.experienceLevel} onValueChange={(value) => setCreateForm({ ...createForm, experienceLevel: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un niveau" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Débutant">Débutant</SelectItem>
+                    <SelectItem value="Intermédiaire">Intermédiaire</SelectItem>
+                    <SelectItem value="Senior">Senior</SelectItem>
+                    <SelectItem value="Expert">Expert</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="create-description">Description du poste *</Label>
+              <Textarea
+                id="create-description"
+                value={createForm.description}
+                onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
+                placeholder="Décrivez le poste en détail..."
+                rows={4}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="create-requirements">Exigences et qualifications</Label>
+              <Textarea
+                id="create-requirements"
+                value={createForm.requirements}
+                onChange={(e) => setCreateForm({ ...createForm, requirements: e.target.value })}
+                placeholder="Compétences requises, diplômes, expérience..."
+                rows={3}
+              />
+            </div>
+
+            <div>
+              <Label>Compétences techniques</Label>
+              <div className="space-y-2">
+                {createForm.skills.map((skill, index) => (
+                  <div key={index} className="flex space-x-2">
+                    <Input
+                      value={skill}
+                      onChange={(e) => handleCreateSkillChange(index, e.target.value)}
+                      placeholder="Ex: React.js"
+                    />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => removeCreateSkill(index)}
+                    >
+                      ×
+                    </Button>
+                  </div>
+                ))}
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={addCreateSkill}
+                >
+                  + Ajouter une compétence
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsCreateDialogOpen(false)}
+              >
+                Annuler
+              </Button>
+              <Button 
+                onClick={handleCreateJob}
+                disabled={createJobMutation.isPending || !createForm.title || !createForm.company || !createForm.location || !createForm.description || !createForm.contractType}
+                data-testid="button-create-job"
+              >
+                {createJobMutation.isPending ? 'Création...' : 'Créer l\'offre'}
               </Button>
             </div>
           </div>
