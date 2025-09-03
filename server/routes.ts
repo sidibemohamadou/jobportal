@@ -277,6 +277,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/users", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as any;
+      
+      if (!["admin", "hr"].includes(user.role)) {
+        return res.status(403).json({ message: "Accès refusé" });
+      }
+
+      const userData = req.body;
+      const newUser = await storage.createUser(userData);
+      res.status(201).json(newUser);
+    } catch (error) {
+      console.error("Error creating user:", error);
+      res.status(500).json({ message: "Failed to create user" });
+    }
+  });
+
   app.put("/api/users/:id", requireAuth, async (req, res) => {
     try {
       const userId = req.params.id;
