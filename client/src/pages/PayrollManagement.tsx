@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { Calendar, DollarSign, FileText, Plus, Search, User } from "lucide-react";
+import { Calendar, DollarSign, FileText, Plus, Search, User, Edit, Download, Mail, Eye, Printer } from "lucide-react";
 
 export default function PayrollManagement() {
   const [selectedPeriod, setSelectedPeriod] = useState("");
@@ -24,6 +24,27 @@ export default function PayrollManagement() {
     bonuses: "",
     period: "",
     status: "pending" as const
+  });
+
+  // États pour modals d'édition et partage
+  const [showEditPayslipDialog, setShowEditPayslipDialog] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [selectedPayroll, setSelectedPayroll] = useState<any>(null);
+  const [editPayslipData, setEditPayslipData] = useState({
+    baseSalary: "",
+    bonuses: "",
+    overtime: "",
+    deductions: "",
+    socialCharges: "",
+    taxes: "",
+    netSalary: "",
+    workingDays: "",
+    absenceDays: "",
+    notes: ""
+  });
+  const [emailData, setEmailData] = useState({
+    email: "",
+    customMessage: ""
   });
 
   const { toast } = useToast();
@@ -89,6 +110,49 @@ export default function PayrollManagement() {
     },
   });
 
+  const savePayslipMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: any }) => {
+      const response = await apiRequest("PUT", `/api/payroll/${id}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/payroll"] });
+      setShowEditPayslipDialog(false);
+      toast({
+        title: "Succès",
+        description: "Bulletin de paie mis à jour avec succès",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erreur",
+        description: "Impossible de sauvegarder les modifications",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const sendEmailMutation = useMutation({
+    mutationFn: async ({ id, email, customMessage }: { id: number; email: string; customMessage: string }) => {
+      const response = await apiRequest("POST", `/api/payroll/${id}/send-email`, { email, customMessage });
+      return response.json();
+    },
+    onSuccess: () => {
+      setShowEmailDialog(false);
+      toast({
+        title: "Succès",
+        description: "Email envoyé avec succès",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Erreur",
+        description: "Impossible d'envoyer l'email",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleCreatePayroll = (e: React.FormEvent) => {
     e.preventDefault();
     createPayrollMutation.mutate({
@@ -127,6 +191,82 @@ export default function PayrollManagement() {
       default:
         return status;
     }
+  };
+
+  // Fonctions de gestion des bulletins de paie
+  const handleViewPayslip = (payroll: any) => {
+    setSelectedPayroll(payroll);
+    // TODO: Ouvrir modal de prévisualisation
+    toast({
+      title: "Prévisualisation",
+      description: `Bulletin de paie de ${payroll.employee?.firstName} ${payroll.employee?.lastName} pour ${payroll.period}`,
+    });
+  };
+
+  const handleEditPayslip = (payroll: any) => {
+    setSelectedPayroll(payroll);
+    setEditPayslipData({
+      baseSalary: payroll.baseSalary?.toString() || "",
+      bonuses: payroll.bonuses?.toString() || "",
+      overtime: payroll.overtime?.toString() || "",
+      deductions: payroll.deductions?.toString() || "",
+      socialCharges: payroll.socialCharges?.toString() || "",
+      taxes: payroll.taxes?.toString() || "",
+      netSalary: payroll.netSalary?.toString() || "",
+      workingDays: payroll.workingDays?.toString() || "",
+      absenceDays: payroll.absenceDays?.toString() || "",
+      notes: payroll.notes || ""
+    });
+    setShowEditPayslipDialog(true);
+  };
+
+  const handleGeneratePDF = (payrollId: number) => {
+    // TODO: Implémenter génération PDF
+    toast({
+      title: "Génération PDF",
+      description: "Génération du bulletin de paie en cours...",
+    });
+  };
+
+  const handleSendEmail = (payroll: any) => {
+    setSelectedPayroll(payroll);
+    setEmailData({
+      email: payroll.employee?.email || "",
+      customMessage: `Bonjour ${payroll.employee?.firstName},\n\nVeuillez trouver ci-joint votre bulletin de paie pour la période ${payroll.period}.\n\nCordialement,\nService RH`
+    });
+    setShowEmailDialog(true);
+  };
+
+  const handleSavePayslip = () => {
+    if (!selectedPayroll) return;
+    
+    const updatedData = {
+      baseSalary: parseFloat(editPayslipData.baseSalary) || 0,
+      bonuses: parseFloat(editPayslipData.bonuses) || 0,
+      overtime: parseFloat(editPayslipData.overtime) || 0,
+      deductions: parseFloat(editPayslipData.deductions) || 0,
+      socialCharges: parseFloat(editPayslipData.socialCharges) || 0,
+      taxes: parseFloat(editPayslipData.taxes) || 0,
+      netSalary: parseFloat(editPayslipData.netSalary) || 0,
+      workingDays: parseInt(editPayslipData.workingDays) || 22,
+      absenceDays: parseInt(editPayslipData.absenceDays) || 0,
+      notes: editPayslipData.notes
+    };
+
+    savePayslipMutation.mutate({
+      id: selectedPayroll.id,
+      data: updatedData
+    });
+  };
+
+  const handleSendEmailAction = () => {
+    if (!selectedPayroll || !emailData.email) return;
+    
+    sendEmailMutation.mutate({
+      id: selectedPayroll.id,
+      email: emailData.email,
+      customMessage: emailData.customMessage
+    });
   };
 
   // Filter payrolls based on search term and selected period
@@ -314,6 +454,194 @@ export default function PayrollManagement() {
         </Card>
       </div>
 
+      {/* Modal d'édition de bulletin de paie */}
+      <Dialog open={showEditPayslipDialog} onOpenChange={setShowEditPayslipDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Modifier le bulletin de paie</DialogTitle>
+            <DialogDescription>
+              {selectedPayroll && `${selectedPayroll.employee?.firstName} ${selectedPayroll.employee?.lastName} - ${selectedPayroll.period}`}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-base-salary">Salaire de base (€)</Label>
+                <Input
+                  id="edit-base-salary"
+                  type="number"
+                  step="0.01"
+                  value={editPayslipData.baseSalary}
+                  onChange={(e) => setEditPayslipData({...editPayslipData, baseSalary: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-bonuses">Primes (€)</Label>
+                <Input
+                  id="edit-bonuses"
+                  type="number"
+                  step="0.01"
+                  value={editPayslipData.bonuses}
+                  onChange={(e) => setEditPayslipData({...editPayslipData, bonuses: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-overtime">Heures supplémentaires (€)</Label>
+                <Input
+                  id="edit-overtime"
+                  type="number"
+                  step="0.01"
+                  value={editPayslipData.overtime}
+                  onChange={(e) => setEditPayslipData({...editPayslipData, overtime: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-deductions">Déductions (€)</Label>
+                <Input
+                  id="edit-deductions"
+                  type="number"
+                  step="0.01"
+                  value={editPayslipData.deductions}
+                  onChange={(e) => setEditPayslipData({...editPayslipData, deductions: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-social-charges">Charges sociales (€)</Label>
+                <Input
+                  id="edit-social-charges"
+                  type="number"
+                  step="0.01"
+                  value={editPayslipData.socialCharges}
+                  onChange={(e) => setEditPayslipData({...editPayslipData, socialCharges: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-taxes">Impôts (€)</Label>
+                <Input
+                  id="edit-taxes"
+                  type="number"
+                  step="0.01"
+                  value={editPayslipData.taxes}
+                  onChange={(e) => setEditPayslipData({...editPayslipData, taxes: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-net-salary">Salaire net (€)</Label>
+                <Input
+                  id="edit-net-salary"
+                  type="number"
+                  step="0.01"
+                  value={editPayslipData.netSalary}
+                  onChange={(e) => setEditPayslipData({...editPayslipData, netSalary: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-working-days">Jours travaillés</Label>
+                <Input
+                  id="edit-working-days"
+                  type="number"
+                  value={editPayslipData.workingDays}
+                  onChange={(e) => setEditPayslipData({...editPayslipData, workingDays: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-absence-days">Jours d'absence</Label>
+                <Input
+                  id="edit-absence-days"
+                  type="number"
+                  value={editPayslipData.absenceDays}
+                  onChange={(e) => setEditPayslipData({...editPayslipData, absenceDays: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="edit-notes">Notes</Label>
+              <Textarea
+                id="edit-notes"
+                value={editPayslipData.notes}
+                onChange={(e) => setEditPayslipData({...editPayslipData, notes: e.target.value})}
+                placeholder="Notes complémentaires..."
+                rows={3}
+              />
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button variant="outline" onClick={() => setShowEditPayslipDialog(false)}>
+                Annuler
+              </Button>
+              <Button 
+                onClick={handleSavePayslip}
+                disabled={savePayslipMutation.isPending}
+                data-testid="button-save-payslip"
+              >
+                {savePayslipMutation.isPending ? 'Sauvegarde...' : 'Sauvegarder'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal d'envoi par email */}
+      <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Envoyer le bulletin de paie par email</DialogTitle>
+            <DialogDescription>
+              {selectedPayroll && `${selectedPayroll.employee?.firstName} ${selectedPayroll.employee?.lastName} - ${selectedPayroll.period}`}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="email-address">Adresse email</Label>
+              <Input
+                id="email-address"
+                type="email"
+                value={emailData.email}
+                onChange={(e) => setEmailData({...emailData, email: e.target.value})}
+                placeholder="employee@company.com"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email-message">Message personnalisé</Label>
+              <Textarea
+                id="email-message"
+                value={emailData.customMessage}
+                onChange={(e) => setEmailData({...emailData, customMessage: e.target.value})}
+                placeholder="Message d'accompagnement..."
+                rows={6}
+              />
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button variant="outline" onClick={() => setShowEmailDialog(false)}>
+                Annuler
+              </Button>
+              <Button 
+                onClick={handleSendEmailAction}
+                disabled={sendEmailMutation.isPending || !emailData.email}
+                data-testid="button-send-email"
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                {sendEmailMutation.isPending ? 'Envoi...' : 'Envoyer'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Filters */}
       <div className="flex gap-4 items-end">
         <div className="flex-1">
@@ -405,19 +733,57 @@ export default function PayrollManagement() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {payroll.status === "pending" && (
+                      <div className="flex space-x-2">
                         <Button
                           size="sm"
-                          onClick={() => updatePayrollMutation.mutate({ 
-                            id: payroll.id, 
-                            status: "paid" 
-                          })}
-                          disabled={updatePayrollMutation.isPending}
-                          data-testid={`button-mark-paid-${payroll.id}`}
+                          variant="outline"
+                          onClick={() => handleViewPayslip(payroll)}
+                          data-testid={`button-view-payslip-${payroll.id}`}
                         >
-                          Marquer Payé
+                          <Eye className="h-4 w-4 mr-1" />
+                          Voir
                         </Button>
-                      )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEditPayslip(payroll)}
+                          data-testid={`button-edit-payslip-${payroll.id}`}
+                        >
+                          <Edit className="h-4 w-4 mr-1" />
+                          Modifier
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleGeneratePDF(payroll.id)}
+                          data-testid={`button-pdf-${payroll.id}`}
+                        >
+                          <Download className="h-4 w-4 mr-1" />
+                          PDF
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleSendEmail(payroll)}
+                          data-testid={`button-email-${payroll.id}`}
+                        >
+                          <Mail className="h-4 w-4 mr-1" />
+                          Email
+                        </Button>
+                        {payroll.status === "pending" && (
+                          <Button
+                            size="sm"
+                            onClick={() => updatePayrollMutation.mutate({ 
+                              id: payroll.id, 
+                              status: "paid" 
+                            })}
+                            disabled={updatePayrollMutation.isPending}
+                            data-testid={`button-mark-paid-${payroll.id}`}
+                          >
+                            Marquer Payé
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))

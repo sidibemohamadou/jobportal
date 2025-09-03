@@ -294,6 +294,136 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Routes de gestion de la paie
+  app.get("/api/payroll", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as any;
+      
+      if (!["admin", "hr"].includes(user.role)) {
+        return res.status(403).json({ message: "Accès refusé" });
+      }
+
+      const payrolls = await storage.getAllPayrolls();
+      res.json(payrolls);
+    } catch (error) {
+      console.error("Error fetching payrolls:", error);
+      res.status(500).json({ message: "Failed to fetch payrolls" });
+    }
+  });
+
+  app.post("/api/payroll", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as any;
+      
+      if (!["admin", "hr"].includes(user.role)) {
+        return res.status(403).json({ message: "Accès refusé" });
+      }
+
+      const payrollData = {
+        ...req.body,
+        createdBy: user.id
+      };
+      
+      const newPayroll = await storage.createPayroll(payrollData);
+      res.status(201).json(newPayroll);
+    } catch (error) {
+      console.error("Error creating payroll:", error);
+      res.status(500).json({ message: "Failed to create payroll" });
+    }
+  });
+
+  app.put("/api/payroll/:id", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as any;
+      
+      if (!["admin", "hr"].includes(user.role)) {
+        return res.status(403).json({ message: "Accès refusé" });
+      }
+
+      const payrollId = parseInt(req.params.id);
+      const updatedPayroll = await storage.updatePayroll(payrollId, req.body);
+      res.json(updatedPayroll);
+    } catch (error) {
+      console.error("Error updating payroll:", error);
+      res.status(500).json({ message: "Failed to update payroll" });
+    }
+  });
+
+  app.get("/api/payroll/:id/payslip", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as any;
+      
+      if (!["admin", "hr"].includes(user.role)) {
+        return res.status(403).json({ message: "Accès refusé" });
+      }
+
+      const payrollId = parseInt(req.params.id);
+      const payroll = await storage.getPayroll(payrollId);
+      
+      if (!payroll) {
+        return res.status(404).json({ message: "Bulletin de paie non trouvé" });
+      }
+
+      res.json(payroll);
+    } catch (error) {
+      console.error("Error fetching payslip:", error);
+      res.status(500).json({ message: "Failed to fetch payslip" });
+    }
+  });
+
+  app.post("/api/payroll/:id/generate-pdf", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as any;
+      
+      if (!["admin", "hr"].includes(user.role)) {
+        return res.status(403).json({ message: "Accès refusé" });
+      }
+
+      const payrollId = parseInt(req.params.id);
+      // TODO: Implémenter génération PDF du bulletin de paie
+      res.json({ message: "PDF generation not implemented yet" });
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      res.status(500).json({ message: "Failed to generate PDF" });
+    }
+  });
+
+  app.post("/api/payroll/:id/send-email", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as any;
+      
+      if (!["admin", "hr"].includes(user.role)) {
+        return res.status(403).json({ message: "Accès refusé" });
+      }
+
+      const payrollId = parseInt(req.params.id);
+      const { email, customMessage } = req.body;
+      
+      // TODO: Implémenter envoi email du bulletin de paie
+      res.json({ message: "Email sending not implemented yet" });
+    } catch (error) {
+      console.error("Error sending email:", error);
+      res.status(500).json({ message: "Failed to send email" });
+    }
+  });
+
+  // Routes des employés pour la paie
+  app.get("/api/employees", requireAuth, async (req, res) => {
+    try {
+      const user = req.user as any;
+      
+      if (!["admin", "hr"].includes(user.role)) {
+        return res.status(403).json({ message: "Accès refusé" });
+      }
+
+      const employees = await storage.getAllEmployees();
+      res.json(employees);
+    } catch (error) {
+      console.error("Error fetching employees:", error);
+      res.status(500).json({ message: "Failed to fetch employees" });
+    }
+  });
+
   // Cette ligne sera remplacée par le middleware Vite en développement
 
   // Créer et retourner le serveur HTTP
