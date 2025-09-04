@@ -30,7 +30,7 @@ export default function Landing() {
   const [experienceFilters, setExperienceFilters] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("newest");
 
-  const { data: jobs = [], isLoading } = useQuery({
+  const { data: jobsData, isLoading } = useQuery({
     queryKey: ["/api/jobs", searchQuery, locationQuery, contractFilters.join(','), experienceFilters.join(',')],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -40,9 +40,16 @@ export default function Landing() {
       if (experienceFilters.length > 0) params.append('experienceLevel', experienceFilters.join(','));
       
       const response = await fetch(`/api/jobs?${params.toString()}`);
-      return response.json();
+      if (!response.ok) {
+        throw new Error(`Erreur API: ${response.status}`);
+      }
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
     },
   });
+
+  // S'assurer que jobs est toujours un tableau
+  const jobs: Job[] = Array.isArray(jobsData) ? jobsData : [];
 
   const handleSearch = () => {
     // Search is reactive through the query key
