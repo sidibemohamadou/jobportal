@@ -1,114 +1,33 @@
-import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { useAuth } from "@/hooks/useAuth";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import Landing from "@/pages/Landing";
-import CandidateLogin from "@/pages/CandidateLogin";
-import AdminLogin from "@/pages/AdminLogin";
-import CandidateDashboard from "@/pages/CandidateDashboard";
-import Profile from "@/pages/Profile";
-import Applications from "@/pages/Applications";
-import AdminDashboard from "@/pages/AdminDashboard";
-import JobManagement from "@/pages/JobManagement";
-import ApplicationManagement from "@/pages/ApplicationManagement";
-import CandidateAssignment from "@/pages/CandidateAssignment";
-import CandidateScoring from "@/pages/CandidateScoring";
-import FinalResults from "@/pages/FinalResults";
-import ProfileCompletion from "@/pages/ProfileCompletion";
-import ContractManagement from "@/pages/ContractManagement";
-import HRManagement from "@/pages/HRManagement";
-import UserManagement from "@/pages/UserManagement";
-import PayrollManagement from "@/pages/PayrollManagement";
-import OnboardingManagement from "@/pages/OnboardingManagement";
-import CandidateOnboarding from "@/pages/CandidateOnboarding";
-import OnboardingFeedback from "@/pages/OnboardingFeedback";
-import AchievementsPage from "@/pages/AchievementsPage";
-import OnboardingCalendar from "@/pages/OnboardingCalendar";
-import InterviewManagement from "@/pages/InterviewManagement";
-import EmployeeManagement from "@/pages/EmployeeManagement";
-import CandidateInvitations from "@/pages/CandidateInvitations";
-import CandidateInvitationHandler from "@/pages/CandidateInvitationHandler";
-import NotFound from "@/pages/not-found";
 
-function Router() {
-  const { user, isAuthenticated, isLoading } = useAuth();
-
-  if (isLoading) {
-    return <div className="min-h-screen flex items-center justify-center bg-background text-foreground">Chargement...</div>;
-  }
-
-  try {
-    // Redirect to profile completion if user is a candidate and profile is not complete
-    if (isAuthenticated && (user as any)?.role === "candidate" && !(user as any)?.profileCompleted) {
-      return <ProfileCompletion />;
-    }
-
-    return (
-      <Switch>
-        {!isAuthenticated ? (
-          <>
-            <Route path="/" component={Landing} />
-            <Route path="/login" component={CandidateLogin} />
-            <Route path="/admin/login" component={AdminLogin} />
-            <Route path="/candidate-invitation/:token" component={CandidateInvitationHandler} />
-          </>
-        ) : (
-          <>
-            {/* Routes pour candidats */}
-            {(user as any)?.role === "candidate" && (
-              <>
-                <Route path="/" component={CandidateDashboard} />
-                <Route path="/profile" component={Profile} />
-                <Route path="/applications" component={Applications} />
-                <Route path="/jobs" component={Landing} />
-                <Route path="/candidate-onboarding" component={CandidateOnboarding} />
-                <Route path="/onboarding-feedback" component={OnboardingFeedback} />
-                <Route path="/achievements" component={AchievementsPage} />
-                <Route path="/onboarding-calendar" component={OnboardingCalendar} />
-              </>
-            )}
-            
-            {/* Routes pour recruteurs, RH et admins */}
-            {((user as any)?.role === "recruiter" || (user as any)?.role === "hr" || (user as any)?.role === "admin") && (
-              <>
-                <Route path="/" component={AdminDashboard} />
-                <Route path="/admin" component={AdminDashboard} />
-                <Route path="/admin/jobs" component={JobManagement} />
-                <Route path="/admin/applications" component={ApplicationManagement} />
-                <Route path="/admin/assignment" component={CandidateAssignment} />
-                <Route path="/admin/scoring" component={CandidateScoring} />
-                <Route path="/admin/final-results" component={FinalResults} />
-                <Route path="/contracts" component={ContractManagement} />
-                <Route path="/hr" component={HRManagement} />
-                <Route path="/admin/payroll" component={PayrollManagement} />
-                <Route path="/admin/onboarding" component={OnboardingManagement} />
-                <Route path="/admin/interviews" component={InterviewManagement} />
-                <Route path="/admin/employees" component={EmployeeManagement} />
-                <Route path="/admin/invitations" component={CandidateInvitations} />
-                {(user as any)?.role === "admin" && (
-                  <Route path="/admin/users" component={UserManagement} />
-                )}
-              </>
-            )}
-          </>
-        )}
-        <Route component={NotFound} />
-      </Switch>
-    );
-  } catch (error) {
-    console.error('Router error:', error);
-    return <div className="min-h-screen flex items-center justify-center bg-background text-foreground">Erreur de chargement</div>;
-  }
+// Test simple pour identifier le problème
+function SimpleTestApp() {
+  console.log('SimpleTestApp rendering...');
+  
+  return (
+    <div className="min-h-screen p-8" style={{backgroundColor: '#f0f0f0', color: '#333'}}>
+      <h1 style={{fontSize: '2rem', fontWeight: 'bold', marginBottom: '1rem'}}>
+        Application de Test Simple
+      </h1>
+      <p style={{fontSize: '1.2rem', marginBottom: '1rem'}}>
+        Si vous voyez cette page, le problème est résolu !
+      </p>
+      <div style={{padding: '1rem', backgroundColor: '#e0f7fa', borderRadius: '8px'}}>
+        <p>Tests en cours : React ✓, Styles ✓, ErrorBoundary ✓</p>
+      </div>
+    </div>
+  );
 }
 
 function App() {
+  console.log('App rendering...');
+  
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <Toaster />
-        <Router />
+        <SimpleTestApp />
       </QueryClientProvider>
     </ErrorBoundary>
   );
