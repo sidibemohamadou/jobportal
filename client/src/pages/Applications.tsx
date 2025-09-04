@@ -10,7 +10,7 @@ import {
   Briefcase, 
   Bell, 
   User, 
-  ChevronDown, 
+  LogOut, 
   LayoutDashboard,
   FileText,
   Search,
@@ -134,10 +134,11 @@ export default function Applications() {
                 <Button 
                   variant="ghost" 
                   size="icon"
-                  onClick={() => window.location.href = "/api/logout"}
+                  onClick={() => import("@/lib/logout").then(m => m.handleLogout())}
                   data-testid="button-logout"
+                  title="Se déconnecter"
                 >
-                  <ChevronDown className="h-4 w-4" />
+                  <LogOut className="h-4 w-4" />
                 </Button>
               </div>
             </div>

@@ -141,7 +141,7 @@ export default function CandidateDashboard() {
                 <Button 
                   variant="ghost" 
                   size="icon"
-                  onClick={() => window.location.href = "/api/logout"}
+                  onClick={() => import("@/lib/logout").then(m => m.handleLogout())}
                   data-testid="button-logout"
                   title="Se déconnecter"
                 >

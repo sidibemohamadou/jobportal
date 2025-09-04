@@ -125,8 +125,26 @@ export async function setupAuth(app: Express) {
         // Clear the session cookie
         res.clearCookie('connect.sid');
         
-        // Always redirect to home page for GET requests
-        res.redirect('/');
+        // Return HTML with immediate redirect
+        res.send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <title>Déconnexion...</title>
+            <script>
+              window.location.href = '/';
+            </script>
+          </head>
+          <body>
+            <p>Déconnexion en cours...</p>
+            <script>
+              // Fallback si le premier script ne fonctionne pas
+              setTimeout(() => window.location.href = '/', 100);
+            </script>
+          </body>
+          </html>
+        `);
       });
     });
   });
