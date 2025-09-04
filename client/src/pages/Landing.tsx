@@ -30,24 +30,18 @@ export default function Landing() {
   const [experienceFilters, setExperienceFilters] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("newest");
 
+  // Construction de l'URL avec paramètres de recherche
+  const buildJobsUrl = () => {
+    const params = new URLSearchParams();
+    if (searchQuery) params.append('search', searchQuery);
+    if (locationQuery) params.append('location', locationQuery);
+    if (contractFilters.length > 0) params.append('contractType', contractFilters.join(','));
+    if (experienceFilters.length > 0) params.append('experienceLevel', experienceFilters.join(','));
+    return `/api/jobs?${params.toString()}`;
+  };
+
   const { data: jobs = [], isLoading, error } = useQuery({
-    queryKey: ["/api/jobs", searchQuery, locationQuery, contractFilters.join(','), experienceFilters.join(',')],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (searchQuery) params.append('search', searchQuery);
-      if (locationQuery) params.append('location', locationQuery);
-      if (contractFilters.length > 0) params.append('contractType', contractFilters.join(','));
-      if (experienceFilters.length > 0) params.append('experienceLevel', experienceFilters.join(','));
-      
-      const response = await fetch(`/api/jobs?${params.toString()}`, {
-        cache: 'no-cache',
-        headers: {
-          'Cache-Control': 'no-cache'
-        }
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      return response.json();
-    },
+    queryKey: [buildJobsUrl()],
     staleTime: 0,
     gcTime: 0
   });
