@@ -30,7 +30,7 @@ export default function Landing() {
   const [experienceFilters, setExperienceFilters] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("newest");
 
-  const { data: jobs = [], isLoading } = useQuery({
+  const { data: jobs = [], isLoading, error } = useQuery({
     queryKey: ["/api/jobs", searchQuery, locationQuery, contractFilters.join(','), experienceFilters.join(',')],
     queryFn: async () => {
       const params = new URLSearchParams();
@@ -40,6 +40,7 @@ export default function Landing() {
       if (experienceFilters.length > 0) params.append('experienceLevel', experienceFilters.join(','));
       
       const response = await fetch(`/api/jobs?${params.toString()}`);
+      if (!response.ok) throw new Error('Failed to fetch jobs');
       return response.json();
     },
   });
@@ -297,12 +298,17 @@ export default function Landing() {
                     </Card>
                   ))}
                 </div>
-              ) : jobs.length === 0 ? (
+              ) : !jobs || jobs.length === 0 ? (
                 <Card>
                   <CardContent className="p-8 text-center">
                     <p className="text-muted-foreground" data-testid="text-no-jobs">
                       Aucune offre d'emploi trouvée. Essayez de modifier vos critères de recherche.
                     </p>
+                    {error && (
+                      <p className="text-red-500 mt-2">
+                        Erreur: {(error as Error).message}
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
               ) : (
