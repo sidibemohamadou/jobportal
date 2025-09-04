@@ -50,21 +50,10 @@ const updateUserSchema = z.object({
   role: z.enum(["candidate", "recruiter", "hr", "admin"]),
 });
 
-const createUserSchema = z.object({
-  firstName: z.string().min(1, "Le prénom est requis"),
-  lastName: z.string().min(1, "Le nom est requis"),
-  email: z.string().email("Email invalide"),
-  phone: z.string().optional(),
-  role: z.enum(["candidate", "recruiter", "hr", "admin"]),
-  password: z.string().min(6, "Le mot de passe doit contenir au moins 6 caractères"),
-});
-
 type UpdateUserForm = z.infer<typeof updateUserSchema>;
-type CreateUserForm = z.infer<typeof createUserSchema>;
 
 export default function UserManagement() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -103,28 +92,6 @@ export default function UserManagement() {
     },
   });
 
-  const createUserMutation = useMutation({
-    mutationFn: async (data: CreateUserForm) => {
-      return apiRequest("POST", "/api/users", data);
-    },
-    onSuccess: () => {
-      toast({
-        title: "Utilisateur créé",
-        description: "L'utilisateur a été créé avec succès.",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
-      setShowCreateDialog(false);
-      createForm.reset();
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Erreur",
-        description: error.message || "Impossible de créer l'utilisateur",
-        variant: "destructive",
-      });
-    },
-  });
-
   const deleteUserMutation = useMutation({
     mutationFn: async (id: string) => {
       return apiRequest(`/api/users/${id}`, {
@@ -158,18 +125,6 @@ export default function UserManagement() {
     },
   });
 
-  const createForm = useForm<CreateUserForm>({
-    resolver: zodResolver(createUserSchema),
-    defaultValues: {
-      firstName: "",
-      lastName: "",
-      email: "",
-      phone: "",
-      role: "candidate",
-      password: "",
-    },
-  });
-
   const handleEdit = (user: User) => {
     setEditingUser(user);
     form.reset({
@@ -184,10 +139,6 @@ export default function UserManagement() {
   const handleUpdate = (data: UpdateUserForm) => {
     if (!editingUser) return;
     updateUserMutation.mutate({ id: editingUser.id, data });
-  };
-
-  const handleCreate = (data: CreateUserForm) => {
-    createUserMutation.mutate(data);
   };
 
   const handleDelete = (user: User) => {
@@ -238,10 +189,6 @@ export default function UserManagement() {
             Gérer les utilisateurs et leurs rôles sur la plateforme
           </p>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)} data-testid="button-add-user">
-          <UserPlus className="w-4 h-4 mr-2" />
-          Ajouter un utilisateur
-        </Button>
       </div>
 
       {/* Stats Cards */}
@@ -506,140 +453,6 @@ export default function UserManagement() {
                   disabled={updateUserMutation.isPending}
                 >
                   {updateUserMutation.isPending ? "Sauvegarde..." : "Sauvegarder"}
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Create User Dialog */}
-      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Ajouter un nouvel utilisateur</DialogTitle>
-          </DialogHeader>
-          <Form {...createForm}>
-            <form onSubmit={createForm.handleSubmit(handleCreate)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={createForm.control}
-                  name="firstName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Prénom *</FormLabel>
-                      <FormControl>
-                        <Input {...field} data-testid="input-create-firstname" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={createForm.control}
-                  name="lastName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nom *</FormLabel>
-                      <FormControl>
-                        <Input {...field} data-testid="input-create-lastname" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={createForm.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email *</FormLabel>
-                    <FormControl>
-                      <Input type="email" {...field} data-testid="input-create-email" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={createForm.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Téléphone</FormLabel>
-                    <FormControl>
-                      <Input {...field} data-testid="input-create-phone" placeholder="Ex: +33 1 23 45 67 89" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={createForm.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Mot de passe temporaire *</FormLabel>
-                    <FormControl>
-                      <Input type="password" {...field} data-testid="input-create-password" placeholder="Minimum 6 caractères" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={createForm.control}
-                name="role"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Rôle *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger data-testid="select-create-role">
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="candidate">Candidat</SelectItem>
-                        <SelectItem value="recruiter">Recruteur</SelectItem>
-                        <SelectItem value="hr">RH</SelectItem>
-                        <SelectItem value="admin">Administrateur</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="bg-muted/50 p-4 rounded-lg">
-                <p className="text-sm text-muted-foreground">
-                  <strong>Note :</strong> L'utilisateur recevra ses informations de connexion par email et devra modifier son mot de passe lors de sa première connexion.
-                </p>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setShowCreateDialog(false);
-                    createForm.reset();
-                  }}
-                  data-testid="button-cancel-create"
-                >
-                  Annuler
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={createUserMutation.isPending}
-                  data-testid="button-submit-create"
-                >
-                  {createUserMutation.isPending ? "Création..." : "Créer l'utilisateur"}
                 </Button>
               </div>
             </form>

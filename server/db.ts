@@ -11,10 +11,5 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Configuration pour utiliser la base de données de développement en production
-// NOTE: Ceci fait pointer la production vers la même DB que le développement
-const DATABASE_URL = process.env.DATABASE_URL;
-console.log(`Using database: ${DATABASE_URL.substring(0, 50)}...`);
-
-export const pool = new Pool({ connectionString: DATABASE_URL });
+export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 export const db = drizzle({ client: pool, schema });

@@ -61,7 +61,7 @@ export function JobCard({ job, onApply }: JobCardProps) {
               <span className="flex items-center">
                 <Calendar className="h-4 w-4 mr-1" />
                 <span data-testid={`text-date-${job.id}`}>
-                  {job.createdAt ? formatDistanceToNow(new Date(job.createdAt), { addSuffix: true, locale }) : 'Inconnu'}
+                  {job.createdAt ? formatDistanceToNow(job.createdAt, { addSuffix: true, locale }) : t('common.unknown')}
                 </span>
               </span>
             </div>

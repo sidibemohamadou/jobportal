@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, 
@@ -60,8 +59,7 @@ export default function JobManagement() {
     salary: "",
     contractType: "",
     experienceLevel: "",
-    skills: [] as string[],
-    isActive: true
+    skills: [] as string[]
   });
 
   const { data: jobs = [], isLoading } = useQuery({
@@ -163,8 +161,7 @@ export default function JobManagement() {
         salary: "",
         contractType: "",
         experienceLevel: "",
-        skills: [],
-        isActive: true
+        skills: []
       });
       toast({
         title: "Succès",
@@ -755,18 +752,6 @@ export default function JobManagement() {
                   + Ajouter une compétence
                 </Button>
               </div>
-            </div>
-
-            <div className="flex items-center space-x-2 pt-4 pb-2">
-              <Checkbox
-                id="create-active"
-                checked={createForm.isActive}
-                onCheckedChange={(checked) => setCreateForm({ ...createForm, isActive: !!checked })}
-                data-testid="checkbox-active"
-              />
-              <Label htmlFor="create-active" className="text-sm font-medium cursor-pointer">
-                Publier cette offre immédiatement
-              </Label>
             </div>
 
             <div className="flex justify-end space-x-2 pt-4">

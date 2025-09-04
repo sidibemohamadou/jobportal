@@ -82,8 +82,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validation des données avec le schéma Zod
       const validatedData = insertApplicationSchema.parse(req.body);
       
-      // Keep availability as string (ISO date string)
-      // No conversion needed - schema expects string
+      // Convert availability string to Date if provided
+      if (validatedData.availability) {
+        validatedData.availability = new Date(validatedData.availability);
+      }
       
       // Création de la candidature via le storage
       const application = await storage.createApplication(validatedData, userId);
@@ -275,23 +277,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/users", requireAuth, async (req, res) => {
-    try {
-      const user = req.user as any;
-      
-      if (!["admin", "hr"].includes(user.role)) {
-        return res.status(403).json({ message: "Accès refusé" });
-      }
-
-      const userData = req.body;
-      const newUser = await storage.createUser(userData);
-      res.status(201).json(newUser);
-    } catch (error) {
-      console.error("Error creating user:", error);
-      res.status(500).json({ message: "Failed to create user" });
-    }
-  });
-
   app.put("/api/users/:id", requireAuth, async (req, res) => {
     try {
       const userId = req.params.id;
@@ -438,7 +423,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch employees" });
     }
   });
-
 
   // Cette ligne sera remplacée par le middleware Vite en développement
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -30,30 +30,26 @@ export default function Landing() {
   const [experienceFilters, setExperienceFilters] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("newest");
 
-  // Récupération des offres d'emploi avec typage explicite
-  const { data: jobs, isLoading, error } = useQuery<Job[]>({
+  const { data: jobs = [], isLoading } = useQuery({
     queryKey: ["/api/jobs", searchQuery, locationQuery, contractFilters.join(','), experienceFilters.join(',')],
-    queryFn: async (): Promise<Job[]> => {
+    queryFn: async () => {
       const params = new URLSearchParams();
       if (searchQuery) params.append('search', searchQuery);
       if (locationQuery) params.append('location', locationQuery);
       if (contractFilters.length > 0) params.append('contractType', contractFilters.join(','));
       if (experienceFilters.length > 0) params.append('experienceLevel', experienceFilters.join(','));
       
-      const response = await fetch(`/api/jobs?${params.toString()}`, {
-        credentials: "include"
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
-      }
-      
+      const response = await fetch(`/api/jobs?${params.toString()}`);
       return response.json();
     },
-    staleTime: 0
   });
 
+  const handleSearch = () => {
+    // Search is reactive through the query key
+  };
+
   const handleApply = (job: Job) => {
+    // Redirection vers la page de connexion candidat
     window.location.href = "/login";
   };
 
@@ -73,46 +69,62 @@ export default function Landing() {
     }
   };
 
-  // Calculs des statistiques avec vérification de sécurité
-  const jobsList = jobs || [];
-  
   const contractTypeCounts = {
-    'CDI': jobsList.filter(job => job.contractType === 'CDI').length,
-    'CDD': jobsList.filter(job => job.contractType === 'CDD').length,
-    'Stage': jobsList.filter(job => job.contractType === 'Stage').length,
-    'Freelance': jobsList.filter(job => job.contractType === 'Freelance').length,
+    'CDI': jobs.filter((job: Job) => job.contractType === 'CDI').length,
+    'CDD': jobs.filter((job: Job) => job.contractType === 'CDD').length,
+    'Freelance': jobs.filter((job: Job) => job.contractType === 'Freelance').length,
   };
 
   const experienceCounts = {
-    'Débutant': jobsList.filter(job => job.experienceLevel === 'Débutant').length,
-    'Intermédiaire': jobsList.filter(job => job.experienceLevel === 'Intermédiaire').length,
-    'Senior': jobsList.filter(job => job.experienceLevel === 'Senior').length,
+    'Débutant': jobs.filter((job: Job) => job.experienceLevel === 'Débutant').length,
+    'Intermédiaire': jobs.filter((job: Job) => job.experienceLevel === 'Intermédiaire').length,
+    'Senior': jobs.filter((job: Job) => job.experienceLevel === 'Senior').length,
   };
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            <div className="flex items-center space-x-4">
+      <header className="bg-card shadow-sm border-b border-border sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center space-x-8">
               <div className="flex items-center space-x-2">
                 <Plane className="h-8 w-8 text-primary" />
-                <span className="text-2xl font-bold text-foreground">AeroRecrutement</span>
+                <span className="text-xl font-bold text-foreground">AeroRecrutement</span>
               </div>
+              <nav className="hidden md:flex space-x-6">
+                <a 
+                  href="#jobs" 
+                  className="text-foreground hover:text-primary transition-colors font-medium"
+                  data-testid="link-jobs"
+                >
+                  {t('jobs')}
+                </a>
+                <a 
+                  href="#about" 
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                  data-testid="link-about"
+                >
+                  {t('about')}
+                </a>
+                <a 
+                  href="#contact" 
+                  className="text-muted-foreground hover:text-primary transition-colors"
+                  data-testid="link-contact"
+                >
+                  {t('contact')}
+                </a>
+              </nav>
             </div>
             
             <div className="flex items-center space-x-4">
               <LanguageSelector />
-              <Button variant="outline" asChild>
-                <a href="/login" data-testid="button-login">
-                  Connexion
-                </a>
-              </Button>
-              <Button asChild>
-                <a href="/login" data-testid="button-register">
-                  Inscription
-                </a>
+              
+              <div className="hidden sm:flex items-center space-x-2">
+              </div>
+              
+              <Button variant="ghost" size="icon" className="md:hidden" data-testid="button-mobile-menu">
+                <Menu className="h-5 w-5" />
               </Button>
             </div>
           </div>
@@ -120,102 +132,110 @@ export default function Landing() {
       </header>
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-primary/10 to-secondary/10 py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl font-bold text-foreground mb-6">
-            Trouvez votre emploi idéal dans l'aéronautique
+      <section className="bg-gradient-to-br from-background via-accent/10 to-secondary/10 py-20 relative overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute top-10 left-10 w-8 h-8 border-2 border-primary rotate-45"></div>
+          <div className="absolute top-20 right-20 w-6 h-6 border-2 border-secondary rotate-12"></div>
+          <div className="absolute bottom-20 left-20 w-10 h-10 border-2 border-accent rotate-45"></div>
+          <div className="absolute bottom-10 right-10 w-4 h-4 border-2 border-primary rotate-12"></div>
+        </div>
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+          <div className="flex items-center justify-center mb-6 space-x-4">
+            <Globe className="h-8 w-8 text-secondary" />
+            <Plane className="h-12 w-12 text-primary plane-path" />
+            <Users className="h-8 w-8 text-accent" />
+          </div>
+          
+          <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6" data-testid="text-hero-title">
+            <span className="text-primary">Carrières Aéroportuaires</span><br />
+            <span className="text-secondary">en Guinée-Bissau</span>
           </h1>
-          <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-            Plateforme de recrutement spécialisée dans les métiers de l'aviation et de l'aéroportuaire en Guinée-Bissau
+          
+          <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto" data-testid="text-hero-subtitle">
+            Découvrez les opportunités d'emploi dans le secteur aéroportuaire et de l'aviation. 
+            Rejoignez les équipes qui connectent la Guinée-Bissau au monde.
           </p>
           
-          {/* Search Bar */}
-          <div className="max-w-4xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-card p-6 rounded-lg shadow-lg">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
-                <Input
-                  placeholder="Titre du poste, compétences..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                  data-testid="input-search-job"
-                />
-              </div>
-              
-              <div className="relative">
-                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-5 w-5" />
-                <Input
-                  placeholder="Ville, région..."
-                  value={locationQuery}
-                  onChange={(e) => setLocationQuery(e.target.value)}
-                  className="pl-10"
-                  data-testid="input-search-location"
-                />
-              </div>
-              
-              <Button className="w-full" data-testid="button-search">
-                <Search className="mr-2 h-4 w-4" />
-                Rechercher
-              </Button>
+          <div className="flex items-center justify-center space-x-8 mb-8 text-sm text-muted-foreground">
+            <div className="flex items-center space-x-2">
+              <Shield className="h-5 w-5 text-primary" />
+              <span>Emplois Sécurisés</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <TrendingUp className="h-5 w-5 text-secondary" />
+              <span>Croissance Garantie</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Globe className="h-5 w-5 text-accent" />
+              <span>Connexion Internationale</span>
             </div>
           </div>
+          
+          {/* Job Search Form */}
+          <Card className="max-w-4xl mx-auto shadow-lg">
+            <CardContent className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder={t('search_placeholder')}
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                    data-testid="input-search-jobs"
+                  />
+                </div>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    type="text"
+                    placeholder={t('location_placeholder')}
+                    value={locationQuery}
+                    onChange={(e) => setLocationQuery(e.target.value)}
+                    className="pl-10"
+                    data-testid="input-search-location"
+                  />
+                </div>
+                <Button 
+                  onClick={handleSearch}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center space-x-2"
+                  data-testid="button-search"
+                >
+                  <Search className="h-5 w-5" />
+                  <span>{t('search_button')}</span>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-16 bg-card border-t border-border">
+      {/* Job Listings Section */}
+      <section className="py-16 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div className="flex flex-col items-center">
-              <div className="bg-primary/10 p-4 rounded-full mb-4">
-                <Users className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-3xl font-bold text-foreground mb-2">{jobsList.length}</h3>
-              <p className="text-muted-foreground">Offres d'emploi</p>
-            </div>
+          <div className="flex flex-col lg:flex-row gap-8">
             
-            <div className="flex flex-col items-center">
-              <div className="bg-primary/10 p-4 rounded-full mb-4">
-                <TrendingUp className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-3xl font-bold text-foreground mb-2">150+</h3>
-              <p className="text-muted-foreground">Entreprises partenaires</p>
-            </div>
-            
-            <div className="flex flex-col items-center">
-              <div className="bg-primary/10 p-4 rounded-full mb-4">
-                <Shield className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-3xl font-bold text-foreground mb-2">98%</h3>
-              <p className="text-muted-foreground">Satisfaction clients</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Jobs Section */}
-      <section className="py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             {/* Filters Sidebar */}
-            <aside className="lg:col-span-1">
-              <Card className="sticky top-4">
+            <aside className="w-full lg:w-64 space-y-6">
+              <Card className="shadow-sm">
                 <CardContent className="p-6">
-                  <h3 className="font-semibold mb-4 text-foreground">Filtres</h3>
+                  <h3 className="font-semibold mb-4 text-foreground">{t('filters')}</h3>
                   
                   {/* Contract Type Filter */}
-                  <div className="mb-6">
-                    <h4 className="text-sm font-medium text-foreground mb-3">Type de contrat</h4>
+                  <div className="mb-4">
+                    <h4 className="text-sm font-medium text-foreground mb-2">{t('contract_type')}</h4>
                     <div className="space-y-2">
                       {Object.entries(contractTypeCounts).map(([type, count]) => (
-                        <label key={type} className="flex items-center cursor-pointer">
+                        <label key={type} className="flex items-center">
                           <Checkbox 
                             checked={contractFilters.includes(type)}
                             onCheckedChange={(checked) => handleContractFilter(type, checked as boolean)}
                             data-testid={`checkbox-contract-${type.toLowerCase()}`}
                           />
-                          <span className="ml-2 text-sm text-foreground">
+                          <span className="ml-2 text-sm">
                             {type} ({count})
                           </span>
                         </label>
@@ -225,16 +245,16 @@ export default function Landing() {
                   
                   {/* Experience Level */}
                   <div className="mb-4">
-                    <h4 className="text-sm font-medium text-foreground mb-3">Niveau d'expérience</h4>
+                    <h4 className="text-sm font-medium text-foreground mb-2">{t('experience')}</h4>
                     <div className="space-y-2">
                       {Object.entries(experienceCounts).map(([level, count]) => (
-                        <label key={level} className="flex items-center cursor-pointer">
+                        <label key={level} className="flex items-center">
                           <Checkbox 
                             checked={experienceFilters.includes(level)}
                             onCheckedChange={(checked) => handleExperienceFilter(level, checked as boolean)}
                             data-testid={`checkbox-experience-${level.toLowerCase()}`}
                           />
-                          <span className="ml-2 text-sm text-foreground">
+                          <span className="ml-2 text-sm">
                             {level} ({count})
                           </span>
                         </label>
@@ -246,26 +266,25 @@ export default function Landing() {
             </aside>
             
             {/* Job Listings */}
-            <main className="lg:col-span-3">
+            <main className="flex-1">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-foreground" data-testid="text-jobs-count">
-                  {jobsList.length} offres trouvées
+                  {jobs.length} {t('jobs_found')}
                 </h2>
                 <Select value={sortBy} onValueChange={setSortBy}>
                   <SelectTrigger className="w-48" data-testid="select-sort">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="newest">Plus récent</SelectItem>
-                    <SelectItem value="salary_asc">Salaire croissant</SelectItem>
-                    <SelectItem value="salary_desc">Salaire décroissant</SelectItem>
-                    <SelectItem value="relevance">Pertinence</SelectItem>
+                    <SelectItem value="newest">{t('sort_newest')}</SelectItem>
+                    <SelectItem value="salary_asc">{t('sort_salary_asc')}</SelectItem>
+                    <SelectItem value="salary_desc">{t('sort_salary_desc')}</SelectItem>
+                    <SelectItem value="relevance">{t('sort_relevance')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               
-              {/* Loading State */}
-              {isLoading && (
+              {isLoading ? (
                 <div className="space-y-4">
                   {[1, 2, 3].map((i) => (
                     <Card key={i} className="animate-pulse">
@@ -278,24 +297,7 @@ export default function Landing() {
                     </Card>
                   ))}
                 </div>
-              )}
-
-              {/* Error State */}
-              {error && (
-                <Card>
-                  <CardContent className="p-8 text-center">
-                    <p className="text-red-500 mb-2">
-                      Erreur de chargement: {(error as Error).message}
-                    </p>
-                    <Button onClick={() => window.location.reload()}>
-                      Réessayer
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* No Jobs State */}
-              {!isLoading && !error && jobsList.length === 0 && (
+              ) : jobs.length === 0 ? (
                 <Card>
                   <CardContent className="p-8 text-center">
                     <p className="text-muted-foreground" data-testid="text-no-jobs">
@@ -303,12 +305,9 @@ export default function Landing() {
                     </p>
                   </CardContent>
                 </Card>
-              )}
-
-              {/* Jobs List */}
-              {!isLoading && !error && jobsList.length > 0 && (
+              ) : (
                 <div className="space-y-4">
-                  {jobsList.map((job: Job) => (
+                  {jobs.map((job: Job) => (
                     <JobCard 
                       key={job.id} 
                       job={job} 
@@ -366,7 +365,7 @@ export default function Landing() {
           
           <div className="mt-8 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center">
             <p className="text-sm text-muted-foreground">
-              © 2024 AeroRecrutement. Tous droits réservés.
+              © 2024 JobPortal. Tous droits réservés.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
               <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
@@ -382,6 +381,7 @@ export default function Landing() {
           </div>
         </div>
       </footer>
+
     </div>
   );
 }
