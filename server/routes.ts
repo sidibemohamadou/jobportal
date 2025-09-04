@@ -82,10 +82,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validation des données avec le schéma Zod
       const validatedData = insertApplicationSchema.parse(req.body);
       
-      // Convert availability string to Date if provided
-      if (validatedData.availability) {
-        validatedData.availability = new Date(validatedData.availability);
-      }
+      // Keep availability as string (ISO date string)
+      // No conversion needed - schema expects string
       
       // Création de la candidature via le storage
       const application = await storage.createApplication(validatedData, userId);
@@ -458,7 +456,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           contractType: "CDI",
           experienceLevel: "Intermédiaire",
           skills: null,
-          isActive: 1
+          isActive: 1 as 0 | 1
         },
         {
           title: "Ingénieur Logiciel Senior",
@@ -470,7 +468,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           contractType: "CDI",
           experienceLevel: "Senior",
           skills: null,
-          isActive: 1
+          isActive: 1 as 0 | 1
         },
         {
           title: "Chef de Projet IT",
@@ -482,7 +480,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           contractType: "CDI",
           experienceLevel: "Senior",
           skills: null,
-          isActive: 1
+          isActive: 1 as 0 | 1
         },
         {
           title: "Développeur React Modifié",
@@ -494,7 +492,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           contractType: "CDI",
           experienceLevel: "Intermédiaire",
           skills: ["React", "TypeScript", "Node.js"],
-          isActive: 1
+          isActive: 1 as 0 | 1
         },
         {
           title: "Test Job",
@@ -506,7 +504,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           contractType: "CDI",
           experienceLevel: null,
           skills: null,
-          isActive: 1
+          isActive: 1 as 0 | 1
         },
         {
           title: "ingénieur réseau",
@@ -518,7 +516,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           contractType: "CDD",
           experienceLevel: "Intermédiaire",
           skills: ["Cisco", "Fortinet", "Palo Alto"],
-          isActive: 1
+          isActive: 1 as 0 | 1
         }
       ];
 
