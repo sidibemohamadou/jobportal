@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import Landing from "@/pages/Landing";
 import CandidateLogin from "@/pages/CandidateLogin";
 import AdminLogin from "@/pages/AdminLogin";
@@ -36,76 +37,84 @@ function Router() {
   const { user, isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return <div className="min-h-screen flex items-center justify-center">Chargement...</div>;
+    return <div className="min-h-screen flex items-center justify-center bg-background text-foreground">Chargement...</div>;
   }
 
-  // Redirect to profile completion if user is a candidate and profile is not complete
-  if (isAuthenticated && (user as any)?.role === "candidate" && !(user as any)?.profileCompleted) {
-    return <ProfileCompletion />;
-  }
+  // Debug: Add error boundary
+  try {
+    // Redirect to profile completion if user is a candidate and profile is not complete
+    if (isAuthenticated && (user as any)?.role === "candidate" && !(user as any)?.profileCompleted) {
+      return <ProfileCompletion />;
+    }
 
-  return (
-    <Switch>
-      {!isAuthenticated ? (
-        <>
-          <Route path="/" component={Landing} />
-          <Route path="/login" component={CandidateLogin} />
-          <Route path="/admin/login" component={AdminLogin} />
-          <Route path="/candidate-invitation/:token" component={CandidateInvitationHandler} />
-        </>
-      ) : (
-        <>
-          {/* Routes pour candidats */}
-          {(user as any)?.role === "candidate" && (
-            <>
-              <Route path="/" component={CandidateDashboard} />
-              <Route path="/profile" component={Profile} />
-              <Route path="/applications" component={Applications} />
-              <Route path="/jobs" component={Landing} />
-              <Route path="/candidate-onboarding" component={CandidateOnboarding} />
-              <Route path="/onboarding-feedback" component={OnboardingFeedback} />
-              <Route path="/achievements" component={AchievementsPage} />
-              <Route path="/onboarding-calendar" component={OnboardingCalendar} />
-            </>
-          )}
-          
-          {/* Routes pour recruteurs, RH et admins */}
-          {((user as any)?.role === "recruiter" || (user as any)?.role === "hr" || (user as any)?.role === "admin") && (
-            <>
-              <Route path="/" component={AdminDashboard} />
-              <Route path="/admin" component={AdminDashboard} />
-              <Route path="/admin/jobs" component={JobManagement} />
-              <Route path="/admin/applications" component={ApplicationManagement} />
-              <Route path="/admin/assignment" component={CandidateAssignment} />
-              <Route path="/admin/scoring" component={CandidateScoring} />
-              <Route path="/admin/final-results" component={FinalResults} />
-              <Route path="/contracts" component={ContractManagement} />
-              <Route path="/hr" component={HRManagement} />
-              <Route path="/admin/payroll" component={PayrollManagement} />
-              <Route path="/admin/onboarding" component={OnboardingManagement} />
-              <Route path="/admin/interviews" component={InterviewManagement} />
-              <Route path="/admin/employees" component={EmployeeManagement} />
-              <Route path="/admin/invitations" component={CandidateInvitations} />
-              {(user as any)?.role === "admin" && (
-                <Route path="/admin/users" component={UserManagement} />
-              )}
-            </>
-          )}
-        </>
-      )}
-      <Route component={NotFound} />
-    </Switch>
-  );
+    return (
+      <Switch>
+        {!isAuthenticated ? (
+          <>
+            <Route path="/" component={Landing} />
+            <Route path="/login" component={CandidateLogin} />
+            <Route path="/admin/login" component={AdminLogin} />
+            <Route path="/candidate-invitation/:token" component={CandidateInvitationHandler} />
+          </>
+        ) : (
+          <>
+            {/* Routes pour candidats */}
+            {(user as any)?.role === "candidate" && (
+              <>
+                <Route path="/" component={CandidateDashboard} />
+                <Route path="/profile" component={Profile} />
+                <Route path="/applications" component={Applications} />
+                <Route path="/jobs" component={Landing} />
+                <Route path="/candidate-onboarding" component={CandidateOnboarding} />
+                <Route path="/onboarding-feedback" component={OnboardingFeedback} />
+                <Route path="/achievements" component={AchievementsPage} />
+                <Route path="/onboarding-calendar" component={OnboardingCalendar} />
+              </>
+            )}
+            
+            {/* Routes pour recruteurs, RH et admins */}
+            {((user as any)?.role === "recruiter" || (user as any)?.role === "hr" || (user as any)?.role === "admin") && (
+              <>
+                <Route path="/" component={AdminDashboard} />
+                <Route path="/admin" component={AdminDashboard} />
+                <Route path="/admin/jobs" component={JobManagement} />
+                <Route path="/admin/applications" component={ApplicationManagement} />
+                <Route path="/admin/assignment" component={CandidateAssignment} />
+                <Route path="/admin/scoring" component={CandidateScoring} />
+                <Route path="/admin/final-results" component={FinalResults} />
+                <Route path="/contracts" component={ContractManagement} />
+                <Route path="/hr" component={HRManagement} />
+                <Route path="/admin/payroll" component={PayrollManagement} />
+                <Route path="/admin/onboarding" component={OnboardingManagement} />
+                <Route path="/admin/interviews" component={InterviewManagement} />
+                <Route path="/admin/employees" component={EmployeeManagement} />
+                <Route path="/admin/invitations" component={CandidateInvitations} />
+                {(user as any)?.role === "admin" && (
+                  <Route path="/admin/users" component={UserManagement} />
+                )}
+              </>
+            )}
+          </>
+        )}
+        <Route component={NotFound} />
+      </Switch>
+    );
+  } catch (error) {
+    console.error('Router error:', error);
+    return <div className="min-h-screen flex items-center justify-center bg-background text-foreground">Erreur de chargement</div>;
+  }
 }
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

@@ -146,19 +146,36 @@ let currentLanguage: Language = 'fr';
 
 export function setLanguage(lang: Language) {
   currentLanguage = lang;
-  localStorage.setItem('language', lang);
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('language', lang);
+  }
 }
 
 export function getLanguage(): Language {
-  const stored = localStorage.getItem('language') as Language;
-  return stored && stored in translations ? stored : 'fr';
+  if (typeof window === 'undefined') {
+    return 'fr';
+  }
+  try {
+    const stored = localStorage.getItem('language') as Language;
+    return stored && stored in translations ? stored : 'fr';
+  } catch {
+    return 'fr';
+  }
 }
 
 export function t(key: TranslationKey): string {
-  return translations[currentLanguage][key] || translations.fr[key] || key;
+  try {
+    return translations[currentLanguage]?.[key] || translations.fr[key] || key;
+  } catch {
+    return key;
+  }
 }
 
-// Initialize language from localStorage
+// Initialize language from localStorage safely
 if (typeof window !== 'undefined') {
-  currentLanguage = getLanguage();
+  try {
+    currentLanguage = getLanguage();
+  } catch {
+    currentLanguage = 'fr';
+  }
 }
