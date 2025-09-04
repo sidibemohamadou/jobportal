@@ -94,9 +94,9 @@ export function registerAuthRoutes(app: Express) {
       });
     } catch (error) {
       console.log("=== REGISTER ERROR ===");
-      console.log("Error type:", error?.constructor?.name);
-      console.log("Error message:", error?.message);
-      console.log("Error stack:", error?.stack);
+      console.log("Error type:", (error as any)?.constructor?.name);
+      console.log("Error message:", (error as any)?.message);
+      console.log("Error stack:", (error as any)?.stack);
       
       if (error instanceof z.ZodError) {
         return res.status(400).json({ 
