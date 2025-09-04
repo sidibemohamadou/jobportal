@@ -125,12 +125,8 @@ export async function setupAuth(app: Express) {
         // Clear the session cookie
         res.clearCookie('connect.sid');
         
-        // Redirect to home page
-        if (req.header('Accept')?.includes('text/html')) {
-          res.redirect('/');
-        } else {
-          res.status(200).json({ message: 'Déconnexion réussie' });
-        }
+        // Always redirect to home page for GET requests
+        res.redirect('/');
       });
     });
   });
