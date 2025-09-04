@@ -4,7 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
-import Landing from "@/pages/Landing";
+import SimpleLanding from "@/pages/SimpleLanding";
 import CandidateLogin from "@/pages/CandidateLogin";
 import AdminLogin from "@/pages/AdminLogin";
 import CandidateDashboard from "@/pages/CandidateDashboard";
@@ -51,7 +51,7 @@ function Router() {
       
       {!isAuthenticated ? (
         <>
-          <Route path="/" component={Landing} />
+          <Route path="/" component={SimpleLanding} />
           <Route path="/login" component={CandidateLogin} />
           <Route path="/candidate-invitation/:token" component={CandidateInvitationHandler} />
         </>
@@ -63,7 +63,7 @@ function Router() {
               <Route path="/" component={CandidateDashboard} />
               <Route path="/profile" component={Profile} />
               <Route path="/applications" component={Applications} />
-              <Route path="/jobs" component={Landing} />
+              <Route path="/jobs" component={SimpleLanding} />
               <Route path="/candidate-onboarding" component={CandidateOnboarding} />
               <Route path="/onboarding-feedback" component={OnboardingFeedback} />
               <Route path="/achievements" component={AchievementsPage} />
