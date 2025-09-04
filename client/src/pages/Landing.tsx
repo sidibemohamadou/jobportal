@@ -39,10 +39,17 @@ export default function Landing() {
       if (contractFilters.length > 0) params.append('contractType', contractFilters.join(','));
       if (experienceFilters.length > 0) params.append('experienceLevel', experienceFilters.join(','));
       
-      const response = await fetch(`/api/jobs?${params.toString()}`);
-      if (!response.ok) throw new Error('Failed to fetch jobs');
+      const response = await fetch(`/api/jobs?${params.toString()}`, {
+        cache: 'no-cache',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       return response.json();
     },
+    staleTime: 0,
+    gcTime: 0
   });
 
   const handleSearch = () => {
