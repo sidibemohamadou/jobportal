@@ -14,7 +14,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, User, MapPin, FileText, Globe, LogOut } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
-import { apiRequest } from "@/lib/queryClient";
+import { apiPut } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -75,7 +75,7 @@ export default function ProfileCompletion() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async (data: ProfileForm) => {
-      await apiRequest("PUT", "/api/profile/complete", data);
+      await apiPut("/api/profile/complete", data);
     },
     onSuccess: () => {
       toast({

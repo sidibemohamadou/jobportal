@@ -424,6 +424,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Complete user profile
+  app.put("/api/profile/complete", requireAuth, async (req: any, res) => {
+    try {
+      const userId = req.user.id;
+      const profileData = {
+        ...req.body,
+        profileCompleted: true
+      };
+      
+      const updatedUser = await storage.updateUser(userId, profileData);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error completing profile:", error);
+      res.status(500).json({ message: "Failed to complete profile" });
+    }
+  });
+
   // Cette ligne sera remplacée par le middleware Vite en développement
 
   // Créer et retourner le serveur HTTP

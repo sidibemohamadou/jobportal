@@ -7,6 +7,7 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
+// API request function for handling HTTP requests
 export async function apiRequest(
   method: string,
   url: string,

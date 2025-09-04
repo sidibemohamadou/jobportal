@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, UserPlus, LogIn, ArrowLeft, Plane } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
+import { apiPost } from "@/lib/api";
 
 const loginSchema = z.object({
   email: z.string().email("Email invalide"),
@@ -53,7 +53,7 @@ export default function CandidateLogin() {
 
   const loginMutation = useMutation({
     mutationFn: async (data: LoginFormData) => {
-      return apiRequest("POST", "/api/auth/login", data);
+      return apiPost("/api/auth/login", data);
     },
     onSuccess: (response) => {
       // Redirection vers le dashboard candidat
@@ -66,7 +66,7 @@ export default function CandidateLogin() {
 
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterFormData) => {
-      return apiRequest("POST", "/api/auth/register", data);
+      return apiPost("/api/auth/register", data);
     },
     onSuccess: (response) => {
       // Redirection vers le dashboard candidat
