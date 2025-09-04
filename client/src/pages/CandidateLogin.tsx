@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, UserPlus, LogIn, ArrowLeft, Plane } from "lucide-react";
-import { apiRequest } from "@/lib/queryClient";
 import { useSimpleToast } from "@/lib/simpleToast";
 
 const loginSchema = z.object({
@@ -55,8 +54,23 @@ export default function CandidateLogin() {
 
   const loginMutation = useMutation({
     mutationFn: async (data: LoginFormData) => {
-      const response = await apiRequest("POST", "/api/auth/login", data);
-      return response.json();
+      try {
+        const response = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+          credentials: "include",
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Erreur de connexion");
+        }
+        
+        return response.json();
+      } catch (error) {
+        throw error;
+      }
     },
     onSuccess: (response) => {
       toast({
@@ -79,15 +93,30 @@ export default function CandidateLogin() {
 
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterFormData) => {
-      const response = await apiRequest("POST", "/api/auth/register", data);
-      return response.json();
+      try {
+        const response = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+          credentials: "include",
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Erreur lors de la création du compte");
+        }
+        
+        return response.json();
+      } catch (error) {
+        throw error;
+      }
     },
     onSuccess: (response) => {
       toast({
         description: "Compte créé avec succès !",
         variant: "default"
       });
-      // Redirection vers le dashboard candidat
+      // Redirection vers le dashboard candidat  
       window.location.href = response.redirectPath || "/";
     },
     onError: (error: any) => {
