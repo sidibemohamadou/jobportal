@@ -10,7 +10,7 @@ import {
   Briefcase, 
   Bell, 
   User, 
-  ChevronDown, 
+  LogOut, 
   LayoutDashboard,
   FileText,
   Search,
@@ -143,8 +143,9 @@ export default function CandidateDashboard() {
                   size="icon"
                   onClick={() => window.location.href = "/api/logout"}
                   data-testid="button-logout"
+                  title="Se déconnecter"
                 >
-                  <ChevronDown className="h-4 w-4" />
+                  <LogOut className="h-4 w-4" />
                 </Button>
               </div>
             </div>

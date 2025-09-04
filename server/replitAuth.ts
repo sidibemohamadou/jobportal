@@ -117,12 +117,21 @@ export async function setupAuth(app: Express) {
 
   app.get("/api/logout", (req, res) => {
     req.logout(() => {
-      res.redirect(
-        client.buildEndSessionUrl(config, {
-          client_id: process.env.REPL_ID!,
-          post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
-        }).href
-      );
+      // Détruire la session
+      req.session.destroy((err) => {
+        if (err) {
+          console.error('Error destroying session:', err);
+        }
+        // Clear the session cookie
+        res.clearCookie('connect.sid');
+        
+        // Redirect to home page
+        if (req.header('Accept')?.includes('text/html')) {
+          res.redirect('/');
+        } else {
+          res.status(200).json({ message: 'Déconnexion réussie' });
+        }
+      });
     });
   });
 }
