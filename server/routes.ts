@@ -441,6 +441,115 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Route de synchronisation temporaire (à supprimer après usage)
+  app.post("/api/admin/sync-db", requireAuth, requireAdminRole, async (req, res) => {
+    try {
+      console.log("Starting database synchronization...");
+      
+      // Données des offres d'emploi à synchroniser
+      const jobsData = [
+        {
+          title: "Développeur Full Stack",
+          company: "AeroTech Solutions",
+          location: "Paris, France",
+          description: "Nous recherchons un développeur expérimenté pour rejoindre notre équipe.",
+          requirements: null,
+          salary: "45000-60000€",
+          contractType: "CDI",
+          experienceLevel: "Intermédiaire",
+          skills: null,
+          isActive: 1
+        },
+        {
+          title: "Ingénieur Logiciel Senior",
+          company: "Innovation Labs",
+          location: "Lyon, France",
+          description: "Poste senior pour développer des solutions innovantes.",
+          requirements: null,
+          salary: "55000-75000€",
+          contractType: "CDI",
+          experienceLevel: "Senior",
+          skills: null,
+          isActive: 1
+        },
+        {
+          title: "Chef de Projet IT",
+          company: "Digital Corp",
+          location: "Marseille, France",
+          description: "Gestion de projets technologiques complexes.",
+          requirements: null,
+          salary: "50000-65000€",
+          contractType: "CDI",
+          experienceLevel: "Senior",
+          skills: null,
+          isActive: 1
+        },
+        {
+          title: "Développeur React Modifié",
+          company: "TechCorp",
+          location: "Lyon, France",
+          description: "Développement d'applications React modernes",
+          requirements: "3+ ans d'expérience React",
+          salary: "50000-65000€",
+          contractType: "CDI",
+          experienceLevel: "Intermédiaire",
+          skills: ["React", "TypeScript", "Node.js"],
+          isActive: 1
+        },
+        {
+          title: "Test Job",
+          company: "Test Corp",
+          location: "Paris",
+          description: "Description test",
+          requirements: null,
+          salary: null,
+          contractType: "CDI",
+          experienceLevel: null,
+          skills: null,
+          isActive: 1
+        },
+        {
+          title: "ingénieur réseau",
+          company: "AeroTech",
+          location: "Bissau",
+          description: "Vos missions principales :\n🔹 Déployer, configurer et maintenir des infrastructures réseaux et sécurité.\n 🔹 Participer à la conception et à l'évolution des architectures techniques.\n 🔹 Assurer le support technique de niveau 2/3.",
+          requirements: "Master 2 en réseau informatique ou équivalent\nMinimum 03 ans d'expérience\nProfil\nMaîtrise des solutions Cisco, Fortinet, Palo Alto…\nCertifications appréciées : CCNA/CCNP, FCP, PCNSE\nConnaissance des environnements VMware, Nutanix, Azure, AWS, GCP, OCI\nBon niveau d'anglais pour les échanges techniques",
+          salary: "",
+          contractType: "CDD",
+          experienceLevel: "Intermédiaire",
+          skills: ["Cisco", "Fortinet", "Palo Alto"],
+          isActive: 1
+        }
+      ];
+
+      // Synchroniser les offres d'emploi
+      let syncedJobs = 0;
+      for (const jobData of jobsData) {
+        try {
+          await storage.createJob(jobData);
+          syncedJobs++;
+        } catch (error) {
+          console.log(`Job already exists or error: ${jobData.title}`);
+        }
+      }
+
+      console.log(`Database sync completed. Jobs synced: ${syncedJobs}`);
+      
+      res.json({
+        success: true,
+        message: `Database synchronization completed. ${syncedJobs} jobs synced.`,
+        syncedJobs
+      });
+    } catch (error) {
+      console.error("Database sync error:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Database synchronization failed", 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+  });
+
   // Cette ligne sera remplacée par le middleware Vite en développement
 
   // Créer et retourner le serveur HTTP
