@@ -30,8 +30,18 @@ export default function Landing() {
   const [experienceFilters, setExperienceFilters] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("newest");
 
-  const { data: jobs = [], isLoading } = useQuery<Job[]>({
+  const { data: jobs = [], isLoading } = useQuery({
     queryKey: ["/api/jobs", searchQuery, locationQuery, contractFilters.join(','), experienceFilters.join(',')],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (searchQuery) params.append('search', searchQuery);
+      if (locationQuery) params.append('location', locationQuery);
+      if (contractFilters.length > 0) params.append('contractType', contractFilters.join(','));
+      if (experienceFilters.length > 0) params.append('experienceLevel', experienceFilters.join(','));
+      
+      const response = await fetch(`/api/jobs?${params.toString()}`);
+      return response.json();
+    },
   });
 
   const handleSearch = () => {
