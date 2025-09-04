@@ -439,6 +439,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Endpoint temporaire de synchronisation pour la production
+  app.post("/api/admin/sync-production", requireAuth, requireAdminRole, async (req, res) => {
+    try {
+      console.log("Starting production database synchronization...");
+      
+      // Données des offres d'emploi à synchroniser avec la production
+      const jobsData = [
+        {
+          title: "Développeur Full Stack",
+          company: "AeroTech Solutions",
+          location: "Paris, France",
+          description: "Nous recherchons un développeur expérimenté pour rejoindre notre équipe.",
+          requirements: null,
+          salary: "45000-60000€",
+          contractType: "CDI",
+          experienceLevel: "Intermédiaire",
+          skills: null,
+          isActive: 1 as 0 | 1
+        },
+        {
+          title: "Ingénieur Logiciel Senior",
+          company: "Innovation Labs",
+          location: "Lyon, France",
+          description: "Poste senior pour développer des solutions innovantes.",
+          requirements: null,
+          salary: "55000-75000€",
+          contractType: "CDI",
+          experienceLevel: "Senior",
+          skills: null,
+          isActive: 1 as 0 | 1
+        },
+        {
+          title: "Chef de Projet IT",
+          company: "Digital Corp",
+          location: "Marseille, France",
+          description: "Gestion de projets technologiques complexes.",
+          requirements: null,
+          salary: "50000-65000€",
+          contractType: "CDI",
+          experienceLevel: "Senior",
+          skills: null,
+          isActive: 1 as 0 | 1
+        },
+        {
+          title: "Développeur React",
+          company: "TechCorp",
+          location: "Lyon, France",
+          description: "Développement d'applications React modernes",
+          requirements: "3+ ans d'expérience React",
+          salary: "50000-65000€",
+          contractType: "CDI",
+          experienceLevel: "Intermédiaire",
+          skills: ["React", "TypeScript", "Node.js"],
+          isActive: 1 as 0 | 1
+        },
+        {
+          title: "Test Job",
+          company: "Test Corp",
+          location: "Paris",
+          description: "Description test",
+          requirements: null,
+          salary: null,
+          contractType: "CDI",
+          experienceLevel: null,
+          skills: null,
+          isActive: 1 as 0 | 1
+        },
+        {
+          title: "ingénieur réseau",
+          company: "AeroTech",
+          location: "Bissau",
+          description: "Vos missions principales :\n🔹 Déployer, configurer et maintenir des infrastructures réseaux et sécurité.\n 🔹 Participer à la conception et à l'évolution des architectures techniques.\n 🔹 Assurer le support technique de niveau 2/3.",
+          requirements: "Master 2 en réseau informatique ou équivalent\nMinimum 03 ans d'expérience\nProfil\nMaîtrise des solutions Cisco, Fortinet, Palo Alto…\nCertifications appréciées : CCNA/CCNP, FCP, PCNSE\nConnaissance des environnements VMware, Nutanix, Azure, AWS, GCP, OCI\nBon niveau d'anglais pour les échanges techniques",
+          salary: "",
+          contractType: "CDD",
+          experienceLevel: "Intermédiaire",
+          skills: ["Cisco", "Fortinet", "Palo Alto"],
+          isActive: 1 as 0 | 1
+        }
+      ];
+
+      // Vérifier si les offres existent déjà pour éviter les doublons
+      const existingJobs = await storage.getAllJobs();
+      const existingTitles = existingJobs.map(job => job.title.toLowerCase());
+
+      // Synchroniser uniquement les nouvelles offres d'emploi
+      let syncedJobs = 0;
+      for (const jobData of jobsData) {
+        try {
+          // Vérifier si l'offre existe déjà
+          if (!existingTitles.includes(jobData.title.toLowerCase())) {
+            await storage.createJob(jobData);
+            syncedJobs++;
+            console.log(`Synced job: ${jobData.title}`);
+          } else {
+            console.log(`Job already exists: ${jobData.title}`);
+          }
+        } catch (error) {
+          console.log(`Error syncing job ${jobData.title}:`, error);
+        }
+      }
+
+      console.log(`Production sync completed. Jobs synced: ${syncedJobs}`);
+      
+      res.json({
+        success: true,
+        message: `Production synchronization completed. ${syncedJobs} jobs synced.`,
+        syncedJobs,
+        totalExisting: existingJobs.length
+      });
+    } catch (error) {
+      console.error("Production sync error:", error);
+      res.status(500).json({ 
+        success: false, 
+        message: "Production synchronization failed", 
+        error: error instanceof Error ? error.message : "Unknown error" 
+      });
+    }
+  });
+
   // Cette ligne sera remplacée par le middleware Vite en développement
 
   // Créer et retourner le serveur HTTP
