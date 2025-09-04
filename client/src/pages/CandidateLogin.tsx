@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, UserPlus, LogIn, ArrowLeft, Plane } from "lucide-react";
-import { apiPost } from "@/lib/api";
+import { useSimpleToast } from "@/lib/simpleToast";
 
 const loginSchema = z.object({
   email: z.string().email("Email invalide"),
@@ -32,6 +32,7 @@ export default function CandidateLogin() {
   const [isRegisterMode, setIsRegisterMode] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useSimpleToast();
 
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -53,27 +54,79 @@ export default function CandidateLogin() {
 
   const loginMutation = useMutation({
     mutationFn: async (data: LoginFormData) => {
-      return apiPost("/api/auth/login", data);
+      try {
+        const response = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+          credentials: "include",
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Erreur de connexion");
+        }
+        
+        return response.json();
+      } catch (error) {
+        throw error;
+      }
     },
     onSuccess: (response) => {
+      toast({
+        description: "Connexion réussie !",
+        variant: "default"
+      });
       // Redirection vers le dashboard candidat
-      setLocation(response.redirectPath || "/dashboard");
+      window.location.href = response.redirectPath || "/";
     },
     onError: (error: any) => {
-      setError(error.message || "Erreur de connexion");
+      const errorMessage = error.message || "Erreur de connexion";
+      setError(errorMessage);
+      toast({
+        title: "Erreur de connexion",
+        description: errorMessage,
+        variant: "destructive"
+      });
     }
   });
 
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterFormData) => {
-      return apiPost("/api/auth/register", data);
+      try {
+        const response = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+          credentials: "include",
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Erreur lors de la création du compte");
+        }
+        
+        return response.json();
+      } catch (error) {
+        throw error;
+      }
     },
     onSuccess: (response) => {
-      // Redirection vers le dashboard candidat
-      setLocation(response.redirectPath || "/dashboard");
+      toast({
+        description: "Compte créé avec succès !",
+        variant: "default"
+      });
+      // Redirection vers le dashboard candidat  
+      window.location.href = response.redirectPath || "/";
     },
     onError: (error: any) => {
-      setError(error.message || "Erreur lors de l'inscription");
+      const errorMessage = error.message || "Erreur lors de la création du compte";
+      setError(errorMessage);
+      toast({
+        title: "Erreur d'inscription",
+        description: errorMessage,
+        variant: "destructive"
+      });
     }
   });
 

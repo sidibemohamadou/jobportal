@@ -67,6 +67,11 @@ export function registerAuthRoutes(app: Express) {
   // Inscription candidat
   app.post("/api/auth/register", async (req, res) => {
     try {
+      console.log("=== DEBUG REGISTER ===");
+      console.log("Headers:", req.headers);
+      console.log("Body:", req.body);
+      console.log("Session available:", !!req.session);
+      
       const credentials = registerSchema.parse(req.body);
       
       const user = await AuthService.registerCandidate(credentials);
@@ -81,12 +86,18 @@ export function registerAuthRoutes(app: Express) {
       }
       (req.session as any).user = user;
       
+      console.log("=== REGISTER SUCCESS ===");
       res.status(201).json({ 
         user,
         redirectPath: "/dashboard",
         message: "Inscription réussie" 
       });
     } catch (error) {
+      console.log("=== REGISTER ERROR ===");
+      console.log("Error type:", (error as any)?.constructor?.name);
+      console.log("Error message:", (error as any)?.message);
+      console.log("Error stack:", (error as any)?.stack);
+      
       if (error instanceof z.ZodError) {
         return res.status(400).json({ 
           message: "Données invalides", 
