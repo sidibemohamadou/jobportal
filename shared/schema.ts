@@ -72,7 +72,7 @@ export const jobs = pgTable("jobs", {
   description: text("description").notNull(),
   requirements: text("requirements"),
   salary: text("salary"),
-  contractType: text("contract_type").notNull(), // CDI, CDD, Freelance
+  contractType: text("contract_type").notNull(), // CDI, CDD, Freelance  
   experienceLevel: text("experience_level"), // Débutant, Intermédiaire, Senior
   skills: text("skills").array(),
   isActive: integer("is_active").default(1),
