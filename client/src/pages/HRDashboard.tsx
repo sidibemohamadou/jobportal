@@ -57,7 +57,7 @@ export default function HRDashboard() {
       description: "Fiches de paie, calculs automatiques, virements",
       icon: DollarSign,
       color: "bg-green-500",
-      route: "/admin/payroll",
+      route: "/hr/payroll",
       stats: {
         label: "Paies à préparer",
         value: stats.payrollToPrepare || 0,
@@ -274,7 +274,7 @@ export default function HRDashboard() {
         <div className="mt-12">
           <h3 className="text-xl font-bold text-foreground mb-6">Actions Rapides</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Link href="/admin/payroll">
+            <Link href="/hr/payroll">
               <Card className="hover:shadow-md transition-shadow cursor-pointer">
                 <CardContent className="p-4 text-center">
                   <DollarSign className="h-8 w-8 mx-auto mb-2 text-green-500" />
@@ -329,7 +329,7 @@ export default function HRDashboard() {
                       <DollarSign className="h-5 w-5 text-green-500" />
                       <span className="font-medium">{stats.payrollToPrepare} fiches de paie à préparer</span>
                     </div>
-                    <Link href="/admin/payroll">
+                    <Link href="/hr/payroll">
                       <Button size="sm">Traiter</Button>
                     </Link>
                   </div>

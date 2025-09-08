@@ -121,6 +121,7 @@ function Router() {
                 <Route path="/hr/management" component={HRManagement} />
                 <Route path="/hr/leaves" component={HRLeaveManagement} />
                 <Route path="/hr/benefits" component={HRBenefitsManagement} />
+                <Route path="/hr/payroll" component={PayrollManagement} />
                 <Route path="/admin/payroll" component={PayrollManagement} />
                 <Route path="/admin/onboarding" component={OnboardingManagement} />
                 <Route path="/admin/interviews" component={InterviewManagement} />
