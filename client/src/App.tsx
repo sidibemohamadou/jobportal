@@ -18,6 +18,7 @@ import FinalResults from "@/pages/FinalResults";
 import ProfileCompletion from "@/pages/ProfileCompletion";
 import ContractManagement from "@/pages/ContractManagement";
 import HRManagement from "@/pages/HRManagement";
+import HRDashboard from "@/pages/HRDashboard";
 import UserManagement from "@/pages/UserManagement";
 import PayrollManagement from "@/pages/PayrollManagement";
 import OnboardingManagement from "@/pages/OnboardingManagement";
@@ -114,7 +115,8 @@ function Router() {
                 <Route path="/admin/scoring" component={CandidateScoring} />
                 <Route path="/admin/final-results" component={FinalResults} />
                 <Route path="/contracts" component={ContractManagement} />
-                <Route path="/hr" component={HRManagement} />
+                <Route path="/hr" component={HRDashboard} />
+                <Route path="/hr/management" component={HRManagement} />
                 <Route path="/admin/payroll" component={PayrollManagement} />
                 <Route path="/admin/onboarding" component={OnboardingManagement} />
                 <Route path="/admin/interviews" component={InterviewManagement} />

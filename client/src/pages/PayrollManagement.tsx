@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { useToast } from "@/hooks/use-toast";
+// Système de notification simple
 import { Calendar, DollarSign, FileText, Plus, Search, User, Edit, Download, Mail, Eye, Printer } from "lucide-react";
 
 export default function PayrollManagement() {
@@ -47,7 +47,11 @@ export default function PayrollManagement() {
     customMessage: ""
   });
 
-  const { toast } = useToast();
+  // Notification simple (remplace useToast)
+  const showNotification = (message: string, type: "success" | "error" = "success") => {
+    console.log(`${type.toUpperCase()}: ${message}`);
+    // TODO: Implémenter système de notification
+  };
   const queryClient = useQueryClient();
 
   const { data: payrolls = [], isLoading } = useQuery({
