@@ -29,6 +29,7 @@ export default function Landing() {
   const [contractFilters, setContractFilters] = useState<string[]>([]);
   const [experienceFilters, setExperienceFilters] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState("newest");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const { data: jobs = [], isLoading } = useQuery({
     queryKey: ["/api/jobs", searchQuery, locationQuery, contractFilters.join(','), experienceFilters.join(',')],
@@ -93,27 +94,27 @@ export default function Landing() {
                 <span className="text-xl font-bold text-foreground">AeroRecrutement</span>
               </div>
               <nav className="hidden md:flex space-x-6">
-                <a 
-                  href="#jobs" 
+                <button 
+                  onClick={() => document.getElementById('jobs-section')?.scrollIntoView({ behavior: 'smooth' })}
                   className="text-foreground hover:text-primary transition-colors font-medium"
                   data-testid="link-jobs"
                 >
                   {t('jobs')}
-                </a>
-                <a 
-                  href="#about" 
+                </button>
+                <button 
+                  onClick={() => document.getElementById('about-section')?.scrollIntoView({ behavior: 'smooth' })}
                   className="text-muted-foreground hover:text-primary transition-colors"
                   data-testid="link-about"
                 >
                   {t('about')}
-                </a>
-                <a 
-                  href="#contact" 
+                </button>
+                <button 
+                  onClick={() => document.getElementById('contact-section')?.scrollIntoView({ behavior: 'smooth' })}
                   className="text-muted-foreground hover:text-primary transition-colors"
                   data-testid="link-contact"
                 >
                   {t('contact')}
-                </a>
+                </button>
               </nav>
             </div>
             
@@ -123,13 +124,59 @@ export default function Landing() {
               <div className="hidden sm:flex items-center space-x-2">
               </div>
               
-              <Button variant="ghost" size="icon" className="md:hidden" data-testid="button-mobile-menu">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="md:hidden" 
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                data-testid="button-mobile-menu"
+              >
                 <Menu className="h-5 w-5" />
               </Button>
             </div>
           </div>
         </div>
       </header>
+
+      {/* Menu Mobile */}
+      {mobileMenuOpen && (
+        <div className="md:hidden bg-card border-b border-border">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <nav className="flex flex-col space-y-4">
+              <button 
+                onClick={() => {
+                  document.getElementById('jobs-section')?.scrollIntoView({ behavior: 'smooth' });
+                  setMobileMenuOpen(false);
+                }}
+                className="text-foreground hover:text-primary transition-colors font-medium text-left"
+                data-testid="link-jobs-mobile"
+              >
+                {t('jobs')}
+              </button>
+              <button 
+                onClick={() => {
+                  document.getElementById('about-section')?.scrollIntoView({ behavior: 'smooth' });
+                  setMobileMenuOpen(false);
+                }}
+                className="text-muted-foreground hover:text-primary transition-colors text-left"
+                data-testid="link-about-mobile"
+              >
+                {t('about')}
+              </button>
+              <button 
+                onClick={() => {
+                  document.getElementById('contact-section')?.scrollIntoView({ behavior: 'smooth' });
+                  setMobileMenuOpen(false);
+                }}
+                className="text-muted-foreground hover:text-primary transition-colors text-left"
+                data-testid="link-contact-mobile"
+              >
+                {t('contact')}
+              </button>
+            </nav>
+          </div>
+        </div>
+      )}
 
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-background via-accent/10 to-secondary/10 py-20 relative overflow-hidden">
@@ -214,7 +261,7 @@ export default function Landing() {
       </section>
 
       {/* Job Listings Section */}
-      <section className="py-16 bg-background">
+      <section id="jobs-section" className="py-16 bg-background">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row gap-8">
             
@@ -321,6 +368,31 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* About Section */}
+      <section id="about-section" className="py-16 bg-muted/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-foreground mb-4">À propos d'AeroRecrutement</h2>
+            <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+              Plateforme leader de recrutement dans le secteur aéroportuaire en Guinée-Bissau, 
+              connectant les talents aux opportunités dans l'aviation et les services aéroportuaires.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* Contact Section */}
+      <section id="contact-section" className="py-16 bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold text-foreground mb-4">Contactez-nous</h2>
+            <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+              Une question ? Besoin d'aide ? Notre équipe est là pour vous accompagner.
+            </p>
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="bg-card border-t border-border py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -338,27 +410,27 @@ export default function Landing() {
             <div>
               <h3 className="font-semibold text-foreground mb-4">Candidats</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-primary transition-colors">Rechercher un emploi</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Créer un CV</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Conseils carrière</a></li>
+                <li><button onClick={() => document.getElementById('jobs-section')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-primary transition-colors">Rechercher un emploi</button></li>
+                <li><button onClick={() => window.location.href = "/login"} className="hover:text-primary transition-colors">Se connecter</button></li>
+                <li><button onClick={() => document.getElementById('about-section')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-primary transition-colors">À propos</button></li>
               </ul>
             </div>
             
             <div>
               <h3 className="font-semibold text-foreground mb-4">Entreprises</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-primary transition-colors">Publier une offre</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Rechercher des talents</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Solutions RH</a></li>
+                <li><button onClick={() => window.location.href = "/admin/login"} className="hover:text-primary transition-colors">Publier une offre</button></li>
+                <li><button onClick={() => window.location.href = "/admin/login"} className="hover:text-primary transition-colors">Espace recruteur</button></li>
+                <li><button onClick={() => window.location.href = "/admin/login"} className="hover:text-primary transition-colors">Solutions RH</button></li>
               </ul>
             </div>
             
             <div>
               <h3 className="font-semibold text-foreground mb-4">Support</h3>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li><a href="#" className="hover:text-primary transition-colors">Centre d'aide</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Contact</a></li>
-                <li><a href="#" className="hover:text-primary transition-colors">Confidentialité</a></li>
+                <li><button onClick={() => document.getElementById('contact-section')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-primary transition-colors">Centre d'aide</button></li>
+                <li><button onClick={() => document.getElementById('contact-section')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-primary transition-colors">Contact</button></li>
+                <li><button onClick={() => document.getElementById('contact-section')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-primary transition-colors">Confidentialité</button></li>
               </ul>
             </div>
           </div>
@@ -368,15 +440,15 @@ export default function Landing() {
               © 2024 JobPortal. Tous droits réservés.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
+              <button className="text-muted-foreground hover:text-primary transition-colors">
                 <Linkedin className="h-5 w-5" />
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
+              </button>
+              <button className="text-muted-foreground hover:text-primary transition-colors">
                 <Twitter className="h-5 w-5" />
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
+              </button>
+              <button className="text-muted-foreground hover:text-primary transition-colors">
                 <Facebook className="h-5 w-5" />
-              </a>
+              </button>
             </div>
           </div>
         </div>
