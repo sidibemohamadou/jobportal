@@ -19,6 +19,8 @@ import ProfileCompletion from "@/pages/ProfileCompletion";
 import ContractManagement from "@/pages/ContractManagement";
 import HRManagement from "@/pages/HRManagement";
 import HRDashboard from "@/pages/HRDashboard";
+import HRLeaveManagement from "@/pages/HRLeaveManagement";
+import HRBenefitsManagement from "@/pages/HRBenefitsManagement";
 import UserManagement from "@/pages/UserManagement";
 import PayrollManagement from "@/pages/PayrollManagement";
 import OnboardingManagement from "@/pages/OnboardingManagement";
@@ -117,6 +119,8 @@ function Router() {
                 <Route path="/contracts" component={ContractManagement} />
                 <Route path="/hr" component={HRDashboard} />
                 <Route path="/hr/management" component={HRManagement} />
+                <Route path="/hr/leaves" component={HRLeaveManagement} />
+                <Route path="/hr/benefits" component={HRBenefitsManagement} />
                 <Route path="/admin/payroll" component={PayrollManagement} />
                 <Route path="/admin/onboarding" component={OnboardingManagement} />
                 <Route path="/admin/interviews" component={InterviewManagement} />
