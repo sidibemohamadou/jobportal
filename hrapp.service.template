@@ -1,0 +1,48 @@
+# Service systemd pour l'application HR
+# Placez ce fichier dans /etc/systemd/system/hrapp.service
+
+[Unit]
+Description=HR Application - Système de gestion des candidatures
+Documentation=https://github.com/votre-repo/hrapp
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=hrapp
+Group=hrapp
+WorkingDirectory=/opt/hrapp
+EnvironmentFile=/etc/hrapp.env
+ExecStart=/usr/bin/node dist/index.js
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=mixed
+KillSignal=SIGINT
+TimeoutStopSec=30
+Restart=always
+RestartSec=5
+StartLimitInterval=60s
+StartLimitBurst=3
+
+# Logs
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=hrapp
+
+# Sécurité
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/opt/hrapp /var/log/hrapp /tmp
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+
+# Ressources
+LimitNOFILE=65536
+LimitNPROC=4096
+
+[Install]
+WantedBy=multi-user.target
