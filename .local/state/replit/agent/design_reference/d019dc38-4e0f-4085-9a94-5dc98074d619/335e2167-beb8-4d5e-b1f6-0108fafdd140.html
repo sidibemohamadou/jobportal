@@ -1,0 +1,1009 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JobPortal - Gestion des Candidatures</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                borderRadius: {
+                    lg: "var(--radius)",
+                    md: "calc(var(--radius) - 2px)",
+                    sm: "calc(var(--radius) - 4px)",
+                },
+                colors: {
+                    background: "var(--background)",
+                    foreground: "var(--foreground)",
+                    card: {
+                        DEFAULT: "var(--card)",
+                        foreground: "var(--card-foreground)",
+                    },
+                    popover: {
+                        DEFAULT: "var(--popover)",
+                        foreground: "var(--popover-foreground)",
+                    },
+                    primary: {
+                        DEFAULT: "var(--primary)",
+                        foreground: "var(--primary-foreground)",
+                    },
+                    secondary: {
+                        DEFAULT: "var(--secondary)",
+                        foreground: "var(--secondary-foreground)",
+                    },
+                    muted: {
+                        DEFAULT: "var(--muted)",
+                        foreground: "var(--muted-foreground)",
+                    },
+                    accent: {
+                        DEFAULT: "var(--accent)",
+                        foreground: "var(--accent-foreground)",
+                    },
+                    destructive: {
+                        DEFAULT: "var(--destructive)",
+                        foreground: "var(--destructive-foreground)",
+                    },
+                    border: "var(--border)",
+                    input: "var(--input)",
+                    ring: "var(--ring)",
+                    chart: {
+                        "1": "var(--chart-1)",
+                        "2": "var(--chart-2)",
+                        "3": "var(--chart-3)",
+                        "4": "var(--chart-4)",
+                        "5": "var(--chart-5)",
+                    }
+                },
+                fontFamily: {
+                    sans: ["Inter", "system-ui", "sans-serif"],
+                }
+            },
+        }
+    };
+    </script>
+    <style>
+        :root {
+            --background: hsl(210 40% 98%);
+            --foreground: hsl(222.2 84% 4.9%);
+            --card: hsl(0 0% 100%);
+            --card-foreground: hsl(222.2 84% 4.9%);
+            --popover: hsl(0 0% 100%);
+            --popover-foreground: hsl(222.2 84% 4.9%);
+            --primary: hsl(221.2 83.2% 53.3%);
+            --primary-foreground: hsl(210 40% 98%);
+            --secondary: hsl(210 40% 96%);
+            --secondary-foreground: hsl(222.2 84% 4.9%);
+            --muted: hsl(210 40% 96%);
+            --muted-foreground: hsl(215.4 16.3% 46.9%);
+            --accent: hsl(210 40% 96%);
+            --accent-foreground: hsl(222.2 84% 4.9%);
+            --destructive: hsl(0 84.2% 60.2%);
+            --destructive-foreground: hsl(210 40% 98%);
+            --border: hsl(214.3 31.8% 91.4%);
+            --input: hsl(214.3 31.8% 91.4%);
+            --ring: hsl(221.2 83.2% 53.3%);
+            --radius: 0.5rem;
+            --chart-1: hsl(12 76% 61%);
+            --chart-2: hsl(173 58% 39%);
+            --chart-3: hsl(197 37% 24%);
+            --chart-4: hsl(43 74% 66%);
+            --chart-5: hsl(27 87% 67%);
+        }
+        .dark {
+            --background: hsl(222.2 84% 4.9%);
+            --foreground: hsl(210 40% 98%);
+            --card: hsl(222.2 84% 4.9%);
+            --card-foreground: hsl(210 40% 98%);
+            --popover: hsl(222.2 84% 4.9%);
+            --popover-foreground: hsl(210 40% 98%);
+            --primary: hsl(217.2 91.2% 59.8%);
+            --primary-foreground: hsl(222.2 84% 4.9%);
+            --secondary: hsl(217.2 32.6% 17.5%);
+            --secondary-foreground: hsl(210 40% 98%);
+            --muted: hsl(217.2 32.6% 17.5%);
+            --muted-foreground: hsl(215 20.2% 65.1%);
+            --accent: hsl(217.2 32.6% 17.5%);
+            --accent-foreground: hsl(210 40% 98%);
+            --destructive: hsl(0 62.8% 30.6%);
+            --destructive-foreground: hsl(210 40% 98%);
+            --border: hsl(217.2 32.6% 17.5%);
+            --input: hsl(217.2 32.6% 17.5%);
+            --ring: hsl(224.3 76.3% 94.0%);
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+</head>
+<body class="bg-background text-foreground font-sans">
+    <!-- @COMPONENT: AppContainer [main application wrapper] -->
+    <div id="app" class="min-h-screen">
+        
+        <!-- @COMPONENT: PublicHeader [navigation for public pages] -->
+        <header class="bg-card shadow-sm border-b border-border sticky top-0 z-50">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center h-16">
+                    <div class="flex items-center space-x-8">
+                        <div class="flex items-center space-x-2">
+                            <i data-lucide="briefcase" class="h-8 w-8 text-primary"></i>
+                            <span class="text-xl font-bold text-foreground">JobPortal</span>
+                        </div>
+                        <nav class="hidden md:flex space-x-6">
+                            <a href="#jobs" class="text-foreground hover:text-primary transition-colors font-medium">Offres d'emploi</a>
+                            <a href="#about" class="text-muted-foreground hover:text-primary transition-colors">À propos</a>
+                            <a href="#contact" class="text-muted-foreground hover:text-primary transition-colors">Contact</a>
+                        </nav>
+                    </div>
+                    
+                    <!-- Language Selector -->
+                    <div class="flex items-center space-x-4">
+                        <select class="text-sm bg-background border border-border rounded px-2 py-1">
+                            <option value="fr">🇫🇷 Français</option>
+                            <option value="en">🇬🇧 English</option>
+                            <option value="pt">🇵🇹 Português</option>
+                        </select>
+                        
+                        <div class="hidden sm:flex items-center space-x-2">
+                            <button class="text-primary hover:text-primary/80 px-4 py-2 rounded-md font-medium transition-colors" data-action="login">
+                                Connexion candidat
+                            </button>
+                            <button class="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md font-medium transition-colors" data-action="register">
+                                S'inscrire
+                            </button>
+                        </div>
+                        
+                        <!-- Mobile menu button -->
+                        <button class="md:hidden p-2" data-action="toggle-mobile-menu">
+                            <i data-lucide="menu" class="h-5 w-5"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+        <!-- @END_COMPONENT: PublicHeader -->
+
+        <!-- @COMPONENT: HeroSection [landing hero with search] -->
+        <section class="bg-gradient-to-b from-background to-muted py-16">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <h1 class="text-4xl md:text-5xl font-bold text-foreground mb-6">
+                    Trouvez votre prochain emploi
+                </h1>
+                <p class="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+                    Découvrez des milliers d'opportunités professionnelles adaptées à votre profil et candidatez en quelques clics.
+                </p>
+                
+                <!-- Job Search Form -->
+                <div class="max-w-4xl mx-auto bg-card rounded-lg shadow-lg p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="relative">
+                            <i data-lucide="search" class="absolute left-3 top-3 h-5 w-5 text-muted-foreground"></i>
+                            <input type="text" placeholder="Titre du poste, mot-clé..." 
+                                   class="w-full pl-10 pr-4 py-3 border border-input rounded-md bg-background focus:ring-2 focus:ring-ring focus:border-transparent">
+                        </div>
+                        <div class="relative">
+                            <i data-lucide="map-pin" class="absolute left-3 top-3 h-5 w-5 text-muted-foreground"></i>
+                            <input type="text" placeholder="Ville, région..." 
+                                   class="w-full pl-10 pr-4 py-3 border border-input rounded-md bg-background focus:ring-2 focus:ring-ring focus:border-transparent">
+                        </div>
+                        <button class="bg-primary text-primary-foreground hover:bg-primary/90 py-3 px-6 rounded-md font-medium transition-colors flex items-center justify-center space-x-2">
+                            <i data-lucide="search" class="h-5 w-5"></i>
+                            <span>Rechercher</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: HeroSection -->
+
+        <!-- @COMPONENT: JobListingsSection [public job listings] -->
+        <section class="py-16 bg-background">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex flex-col lg:flex-row gap-8">
+                    
+                    <!-- Filters Sidebar -->
+                    <aside class="w-full lg:w-64 space-y-6">
+                        <div class="bg-card rounded-lg p-6 shadow-sm border border-border">
+                            <h3 class="font-semibold mb-4 text-foreground">Filtres</h3>
+                            
+                            <!-- Contract Type Filter -->
+                            <div class="mb-4">
+                                <h4 class="text-sm font-medium text-foreground mb-2">Type de contrat</h4>
+                                <div class="space-y-2">
+                                    <label class="flex items-center">
+                                        <input type="checkbox" class="rounded border-border text-primary focus:ring-ring" data-mock="true">
+                                        <span class="ml-2 text-sm" data-mock="true">CDI (25)</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" class="rounded border-border text-primary focus:ring-ring" data-mock="true">
+                                        <span class="ml-2 text-sm" data-mock="true">CDD (12)</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" class="rounded border-border text-primary focus:ring-ring" data-mock="true">
+                                        <span class="ml-2 text-sm" data-mock="true">Freelance (8)</span>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <!-- Salary Range -->
+                            <div class="mb-4">
+                                <h4 class="text-sm font-medium text-foreground mb-2">Salaire</h4>
+                                <select class="w-full p-2 border border-input rounded-md bg-background">
+                                    <option>Tous les salaires</option>
+                                    <option>20k - 30k €</option>
+                                    <option>30k - 50k €</option>
+                                    <option>50k - 70k €</option>
+                                    <option>70k+ €</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Experience Level -->
+                            <div class="mb-4">
+                                <h4 class="text-sm font-medium text-foreground mb-2">Expérience</h4>
+                                <div class="space-y-2">
+                                    <label class="flex items-center">
+                                        <input type="checkbox" class="rounded border-border text-primary focus:ring-ring" data-mock="true">
+                                        <span class="ml-2 text-sm" data-mock="true">Débutant (5)</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" class="rounded border-border text-primary focus:ring-ring" data-mock="true">
+                                        <span class="ml-2 text-sm" data-mock="true">Intermédiaire (18)</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="checkbox" class="rounded border-border text-primary focus:ring-ring" data-mock="true">
+                                        <span class="ml-2 text-sm" data-mock="true">Senior (22)</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </aside>
+                    
+                    <!-- Job Listings -->
+                    <main class="flex-1">
+                        <div class="flex justify-between items-center mb-6">
+                            <h2 class="text-2xl font-bold text-foreground">
+                                <span data-bind="jobs.length" data-mock="true">45</span> offres trouvées
+                            </h2>
+                            <select class="p-2 border border-input rounded-md bg-background">
+                                <option>Plus récentes</option>
+                                <option>Salaire croissant</option>
+                                <option>Salaire décroissant</option>
+                                <option>Pertinence</option>
+                            </select>
+                        </div>
+                        
+                        <!-- @MAP: jobs.map(job => ( -->
+                        <div class="space-y-4">
+                            <!-- Job Card 1 -->
+                            <div class="bg-card rounded-lg p-6 shadow-sm border border-border hover:shadow-md transition-shadow cursor-pointer" data-action="view-job">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div class="flex-1">
+                                        <h3 class="text-lg font-semibold text-foreground mb-2" data-mock="true">Développeur Full Stack React/Node.js</h3>
+                                        <div class="flex items-center space-x-4 text-sm text-muted-foreground">
+                                            <span class="flex items-center">
+                                                <i data-lucide="building-2" class="h-4 w-4 mr-1"></i>
+                                                <span data-mock="true">TechCorp SARL</span>
+                                            </span>
+                                            <span class="flex items-center">
+                                                <i data-lucide="map-pin" class="h-4 w-4 mr-1"></i>
+                                                <span data-mock="true">Paris, France</span>
+                                            </span>
+                                            <span class="flex items-center">
+                                                <i data-lucide="calendar" class="h-4 w-4 mr-1"></i>
+                                                <span data-mock="true">Il y a 2 jours</span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-lg font-semibold text-foreground" data-mock="true">45k - 60k €</div>
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800" data-mock="true">CDI</span>
+                                    </div>
+                                </div>
+                                <p class="text-muted-foreground mb-4" data-mock="true">
+                                    Rejoignez notre équipe pour développer des applications web modernes avec React et Node.js. Vous travaillerez sur des projets innovants dans un environnement agile...
+                                </p>
+                                <div class="flex flex-wrap gap-2 mb-4">
+                                    <span class="px-3 py-1 bg-secondary text-secondary-foreground rounded-full text-xs" data-mock="true">React.js</span>
+                                    <span class="px-3 py-1 bg-secondary text-secondary-foreground rounded-full text-xs" data-mock="true">Node.js</span>
+                                    <span class="px-3 py-1 bg-secondary text-secondary-foreground rounded-full text-xs" data-mock="true">TypeScript</span>
+                                    <span class="px-3 py-1 bg-secondary text-secondary-foreground rounded-full text-xs" data-mock="true">PostgreSQL</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-muted-foreground" data-mock="true">3-5 ans d'expérience</span>
+                                    <button class="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium transition-colors" data-action="apply-job">
+                                        Postuler
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Job Card 2 -->
+                            <div class="bg-card rounded-lg p-6 shadow-sm border border-border hover:shadow-md transition-shadow cursor-pointer" data-action="view-job">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div class="flex-1">
+                                        <h3 class="text-lg font-semibold text-foreground mb-2" data-mock="true">UX/UI Designer Senior</h3>
+                                        <div class="flex items-center space-x-4 text-sm text-muted-foreground">
+                                            <span class="flex items-center">
+                                                <i data-lucide="building-2" class="h-4 w-4 mr-1"></i>
+                                                <span data-mock="true">Design Studio Pro</span>
+                                            </span>
+                                            <span class="flex items-center">
+                                                <i data-lucide="map-pin" class="h-4 w-4 mr-1"></i>
+                                                <span data-mock="true">Lyon, France</span>
+                                            </span>
+                                            <span class="flex items-center">
+                                                <i data-lucide="calendar" class="h-4 w-4 mr-1"></i>
+                                                <span data-mock="true">Il y a 1 jour</span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-lg font-semibold text-foreground" data-mock="true">50k - 65k €</div>
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800" data-mock="true">CDI</span>
+                                    </div>
+                                </div>
+                                <p class="text-muted-foreground mb-4" data-mock="true">
+                                    Nous recherchons un(e) UX/UI Designer passionné(e) pour concevoir des expériences utilisateur exceptionnelles. Vous interviendrez sur des projets variés...
+                                </p>
+                                <div class="flex flex-wrap gap-2 mb-4">
+                                    <span class="px-3 py-1 bg-secondary text-secondary-foreground rounded-full text-xs" data-mock="true">Figma</span>
+                                    <span class="px-3 py-1 bg-secondary text-secondary-foreground rounded-full text-xs" data-mock="true">Adobe XD</span>
+                                    <span class="px-3 py-1 bg-secondary text-secondary-foreground rounded-full text-xs" data-mock="true">Prototyping</span>
+                                    <span class="px-3 py-1 bg-secondary text-secondary-foreground rounded-full text-xs" data-mock="true">User Research</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-muted-foreground" data-mock="true">5+ ans d'expérience</span>
+                                    <button class="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium transition-colors" data-action="apply-job">
+                                        Postuler
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- Job Card 3 -->
+                            <div class="bg-card rounded-lg p-6 shadow-sm border border-border hover:shadow-md transition-shadow cursor-pointer" data-action="view-job">
+                                <div class="flex justify-between items-start mb-4">
+                                    <div class="flex-1">
+                                        <h3 class="text-lg font-semibold text-foreground mb-2" data-mock="true">Chef de Projet Digital</h3>
+                                        <div class="flex items-center space-x-4 text-sm text-muted-foreground">
+                                            <span class="flex items-center">
+                                                <i data-lucide="building-2" class="h-4 w-4 mr-1"></i>
+                                                <span data-mock="true">Agence Digitale 360</span>
+                                            </span>
+                                            <span class="flex items-center">
+                                                <i data-lucide="map-pin" class="h-4 w-4 mr-1"></i>
+                                                <span data-mock="true">Toulouse, France</span>
+                                            </span>
+                                            <span class="flex items-center">
+                                                <i data-lucide="calendar" class="h-4 w-4 mr-1"></i>
+                                                <span data-mock="true">Il y a 3 jours</span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-lg font-semibold text-foreground" data-mock="true">40k - 55k €</div>
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800" data-mock="true">CDD 12 mois</span>
+                                    </div>
+                                </div>
+                                <p class="text-muted-foreground mb-4" data-mock="true">
+                                    Pilotez des projets web et mobile de A à Z. Vous coordonnerez les équipes techniques et créatives pour livrer des solutions digitales innovantes...
+                                </p>
+                                <div class="flex flex-wrap gap-2 mb-4">
+                                    <span class="px-3 py-1 bg-secondary text-secondary-foreground rounded-full text-xs" data-mock="true">Agile/Scrum</span>
+                                    <span class="px-3 py-1 bg-secondary text-secondary-foreground rounded-full text-xs" data-mock="true">Jira</span>
+                                    <span class="px-3 py-1 bg-secondary text-secondary-foreground rounded-full text-xs" data-mock="true">Digital Strategy</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-muted-foreground" data-mock="true">2-4 ans d'expérience</span>
+                                    <button class="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 rounded-md text-sm font-medium transition-colors" data-action="apply-job">
+                                        Postuler
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- @END_MAP )) -->
+                        
+                        <!-- Pagination -->
+                        <div class="mt-8 flex justify-center">
+                            <nav class="flex items-center space-x-2">
+                                <button class="px-3 py-2 text-sm border border-border rounded-md hover:bg-accent transition-colors" disabled>
+                                    Précédent
+                                </button>
+                                <button class="px-3 py-2 text-sm bg-primary text-primary-foreground rounded-md">1</button>
+                                <button class="px-3 py-2 text-sm border border-border rounded-md hover:bg-accent transition-colors">2</button>
+                                <button class="px-3 py-2 text-sm border border-border rounded-md hover:bg-accent transition-colors">3</button>
+                                <button class="px-3 py-2 text-sm border border-border rounded-md hover:bg-accent transition-colors">
+                                    Suivant
+                                </button>
+                            </nav>
+                        </div>
+                    </main>
+                </div>
+            </div>
+        </section>
+        <!-- @END_COMPONENT: JobListingsSection -->
+
+        <!-- @COMPONENT: LoginModal [candidate authentication modal] -->
+        <div id="loginModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" data-modal="login">
+            <div class="bg-card rounded-lg p-8 max-w-md w-full mx-4 shadow-xl">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-foreground">Connexion candidat</h2>
+                    <button class="text-muted-foreground hover:text-foreground" data-action="close-modal">
+                        <i data-lucide="x" class="h-6 w-6"></i>
+                    </button>
+                </div>
+                
+                <form class="space-y-4" data-form="login">
+                    <div>
+                        <label class="block text-sm font-medium text-foreground mb-2">Email</label>
+                        <input type="email" required class="w-full p-3 border border-input rounded-md bg-background focus:ring-2 focus:ring-ring focus:border-transparent" placeholder="votre@email.com">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-foreground mb-2">Mot de passe</label>
+                        <input type="password" required class="w-full p-3 border border-input rounded-md bg-background focus:ring-2 focus:ring-ring focus:border-transparent" placeholder="••••••••">
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <label class="flex items-center">
+                            <input type="checkbox" class="rounded border-border text-primary focus:ring-ring">
+                            <span class="ml-2 text-sm text-muted-foreground">Se souvenir de moi</span>
+                        </label>
+                        <a href="#" class="text-sm text-primary hover:text-primary/80">Mot de passe oublié ?</a>
+                    </div>
+                    <button type="submit" class="w-full bg-primary text-primary-foreground hover:bg-primary/90 py-3 rounded-md font-medium transition-colors">
+                        Se connecter
+                    </button>
+                    
+                    <div class="text-center pt-4">
+                        <p class="text-sm text-muted-foreground">
+                            Pas encore de compte ? 
+                            <button type="button" class="text-primary hover:text-primary/80 font-medium" data-action="switch-to-register">
+                                S'inscrire
+                            </button>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: LoginModal -->
+
+        <!-- @COMPONENT: RegisterModal [candidate registration modal] -->
+        <div id="registerModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" data-modal="register">
+            <div class="bg-card rounded-lg p-8 max-w-md w-full mx-4 shadow-xl">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-foreground">Créer un compte candidat</h2>
+                    <button class="text-muted-foreground hover:text-foreground" data-action="close-modal">
+                        <i data-lucide="x" class="h-6 w-6"></i>
+                    </button>
+                </div>
+                
+                <form class="space-y-4" data-form="register">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-foreground mb-2">Prénom</label>
+                            <input type="text" required class="w-full p-3 border border-input rounded-md bg-background focus:ring-2 focus:ring-ring focus:border-transparent" placeholder="Prénom">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-foreground mb-2">Nom</label>
+                            <input type="text" required class="w-full p-3 border border-input rounded-md bg-background focus:ring-2 focus:ring-ring focus:border-transparent" placeholder="Nom">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-foreground mb-2">Email</label>
+                        <input type="email" required class="w-full p-3 border border-input rounded-md bg-background focus:ring-2 focus:ring-ring focus:border-transparent" placeholder="votre@email.com">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-foreground mb-2">Mot de passe</label>
+                        <input type="password" required class="w-full p-3 border border-input rounded-md bg-background focus:ring-2 focus:ring-ring focus:border-transparent" placeholder="••••••••">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-foreground mb-2">Confirmer le mot de passe</label>
+                        <input type="password" required class="w-full p-3 border border-input rounded-md bg-background focus:ring-2 focus:ring-ring focus:border-transparent" placeholder="••••••••">
+                    </div>
+                    <div>
+                        <label class="flex items-center">
+                            <input type="checkbox" required class="rounded border-border text-primary focus:ring-ring">
+                            <span class="ml-2 text-sm text-muted-foreground">
+                                J'accepte les <a href="#" class="text-primary hover:text-primary/80">conditions d'utilisation</a>
+                            </span>
+                        </label>
+                    </div>
+                    <button type="submit" class="w-full bg-primary text-primary-foreground hover:bg-primary/90 py-3 rounded-md font-medium transition-colors">
+                        Créer mon compte
+                    </button>
+                    
+                    <div class="text-center pt-4">
+                        <p class="text-sm text-muted-foreground">
+                            Déjà un compte ? 
+                            <button type="button" class="text-primary hover:text-primary/80 font-medium" data-action="switch-to-login">
+                                Se connecter
+                            </button>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: RegisterModal -->
+
+        <!-- @COMPONENT: CandidateDashboard [candidate private area] -->
+        <div id="candidateDashboard" class="hidden">
+            <!-- Candidate Header -->
+            <header class="bg-card shadow-sm border-b border-border">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="flex justify-between items-center h-16">
+                        <div class="flex items-center space-x-8">
+                            <div class="flex items-center space-x-2">
+                                <i data-lucide="briefcase" class="h-8 w-8 text-primary"></i>
+                                <span class="text-xl font-bold text-foreground">JobPortal</span>
+                                <span class="text-sm text-muted-foreground">Espace candidat</span>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center space-x-4">
+                            <!-- Notifications -->
+                            <button class="relative p-2 text-muted-foreground hover:text-foreground">
+                                <i data-lucide="bell" class="h-5 w-5"></i>
+                                <span class="absolute -top-1 -right-1 h-4 w-4 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center" data-bind="notificationCount" data-mock="true">3</span>
+                            </button>
+                            
+                            <!-- User Menu -->
+                            <div class="relative">
+                                <button class="flex items-center space-x-2 p-2 text-muted-foreground hover:text-foreground">
+                                    <div class="h-8 w-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-medium" data-bind="user.initials" data-mock="true">JS</div>
+                                    <span data-bind="user.name" data-mock="true">Jean Dupont</span>
+                                    <i data-lucide="chevron-down" class="h-4 w-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            
+            <div class="flex">
+                <!-- Sidebar Navigation -->
+                <nav class="w-64 bg-card shadow-sm border-r border-border min-h-screen">
+                    <div class="p-6">
+                        <ul class="space-y-2">
+                            <li>
+                                <a href="#dashboard" class="flex items-center space-x-3 p-3 text-primary bg-primary/10 rounded-md">
+                                    <i data-lucide="layout-dashboard" class="h-5 w-5"></i>
+                                    <span class="font-medium">Tableau de bord</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#applications" class="flex items-center space-x-3 p-3 text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">
+                                    <i data-lucide="file-text" class="h-5 w-5"></i>
+                                    <span>Mes candidatures</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#profile" class="flex items-center space-x-3 p-3 text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">
+                                    <i data-lucide="user" class="h-5 w-5"></i>
+                                    <span>Mon profil</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#jobs" class="flex items-center space-x-3 p-3 text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">
+                                    <i data-lucide="search" class="h-5 w-5"></i>
+                                    <span>Rechercher</span>
+                                </a>
+                            </li>
+                            <li>
+                                <a href="#documents" class="flex items-center space-x-3 p-3 text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors">
+                                    <i data-lucide="folder" class="h-5 w-5"></i>
+                                    <span>Mes documents</span>
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+                
+                <!-- Main Content -->
+                <main class="flex-1 p-8 bg-background">
+                    <!-- Dashboard Overview -->
+                    <div class="mb-8">
+                        <h1 class="text-3xl font-bold text-foreground mb-2">Tableau de bord</h1>
+                        <p class="text-muted-foreground">Bienvenue dans votre espace candidat</p>
+                    </div>
+                    
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-card rounded-lg p-6 shadow-sm border border-border">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-muted-foreground">Candidatures envoyées</p>
+                                    <p class="text-2xl font-bold text-foreground" data-bind="stats.applicationsCount" data-mock="true">12</p>
+                                </div>
+                                <i data-lucide="send" class="h-8 w-8 text-primary"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-card rounded-lg p-6 shadow-sm border border-border">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-muted-foreground">En attente</p>
+                                    <p class="text-2xl font-bold text-foreground" data-bind="stats.pendingCount" data-mock="true">8</p>
+                                </div>
+                                <i data-lucide="clock" class="h-8 w-8 text-yellow-500"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-card rounded-lg p-6 shadow-sm border border-border">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-muted-foreground">Entretiens</p>
+                                    <p class="text-2xl font-bold text-foreground" data-bind="stats.interviewsCount" data-mock="true">3</p>
+                                </div>
+                                <i data-lucide="calendar" class="h-8 w-8 text-green-500"></i>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-card rounded-lg p-6 shadow-sm border border-border">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm text-muted-foreground">Profil complété</p>
+                                    <p class="text-2xl font-bold text-foreground" data-bind="stats.profileCompletion" data-mock="true">85%</p>
+                                </div>
+                                <i data-lucide="user-check" class="h-8 w-8 text-blue-500"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Recent Applications -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div class="bg-card rounded-lg p-6 shadow-sm border border-border">
+                            <h3 class="text-lg font-semibold text-foreground mb-4">Candidatures récentes</h3>
+                            <div class="space-y-4">
+                                <!-- @MAP: recentApplications.map(application => ( -->
+                                <div class="flex items-center justify-between p-4 bg-background rounded-lg">
+                                    <div class="flex-1">
+                                        <h4 class="font-medium text-foreground" data-mock="true">Développeur Full Stack</h4>
+                                        <p class="text-sm text-muted-foreground" data-mock="true">TechCorp SARL</p>
+                                        <p class="text-xs text-muted-foreground" data-mock="true">Candidature envoyée il y a 2 jours</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800" data-mock="true">En attente</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between p-4 bg-background rounded-lg">
+                                    <div class="flex-1">
+                                        <h4 class="font-medium text-foreground" data-mock="true">UX/UI Designer</h4>
+                                        <p class="text-sm text-muted-foreground" data-mock="true">Design Studio Pro</p>
+                                        <p class="text-xs text-muted-foreground" data-mock="true">Candidature envoyée il y a 5 jours</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800" data-mock="true">Entretien planifié</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-center justify-between p-4 bg-background rounded-lg">
+                                    <div class="flex-1">
+                                        <h4 class="font-medium text-foreground" data-mock="true">Chef de Projet</h4>
+                                        <p class="text-sm text-muted-foreground" data-mock="true">Agence Digitale 360</p>
+                                        <p class="text-xs text-muted-foreground" data-mock="true">Candidature envoyée il y a 1 semaine</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800" data-mock="true">Refusée</span>
+                                    </div>
+                                </div>
+                                <!-- @END_MAP )) -->
+                            </div>
+                            <div class="mt-4">
+                                <a href="#applications" class="text-primary hover:text-primary/80 text-sm font-medium">Voir toutes mes candidatures →</a>
+                            </div>
+                        </div>
+                        
+                        <!-- Profile Completion -->
+                        <div class="bg-card rounded-lg p-6 shadow-sm border border-border">
+                            <h3 class="text-lg font-semibold text-foreground mb-4">Complétez votre profil</h3>
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-foreground">Informations personnelles</span>
+                                    <i data-lucide="check-circle" class="h-5 w-5 text-green-500"></i>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-foreground">CV téléchargé</span>
+                                    <i data-lucide="check-circle" class="h-5 w-5 text-green-500"></i>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-muted-foreground">Photo de profil</span>
+                                    <i data-lucide="circle" class="h-5 w-5 text-muted-foreground"></i>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-muted-foreground">Expériences professionnelles</span>
+                                    <i data-lucide="circle" class="h-5 w-5 text-muted-foreground"></i>
+                                </div>
+                                <div class="flex items-center justify-between">
+                                    <span class="text-sm text-muted-foreground">Compétences</span>
+                                    <i data-lucide="circle" class="h-5 w-5 text-muted-foreground"></i>
+                                </div>
+                            </div>
+                            <div class="mt-6">
+                                <button class="w-full bg-primary text-primary-foreground hover:bg-primary/90 py-2 px-4 rounded-md text-sm font-medium transition-colors">
+                                    Compléter mon profil
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: CandidateDashboard -->
+
+        <!-- @COMPONENT: ApplicationModal [job application form] -->
+        <div id="applicationModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" data-modal="application">
+            <div class="bg-card rounded-lg p-8 max-w-2xl w-full mx-4 shadow-xl max-h-[90vh] overflow-y-auto">
+                <div class="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 class="text-2xl font-bold text-foreground" data-bind="job.title" data-mock="true">Postuler pour Développeur Full Stack</h2>
+                        <p class="text-muted-foreground" data-bind="job.company" data-mock="true">TechCorp SARL</p>
+                    </div>
+                    <button class="text-muted-foreground hover:text-foreground" data-action="close-modal">
+                        <i data-lucide="x" class="h-6 w-6"></i>
+                    </button>
+                </div>
+                
+                <form class="space-y-6" data-form="application">
+                    <!-- Personal Information -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-foreground mb-4">Informations personnelles</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-foreground mb-2">Prénom *</label>
+                                <input type="text" required class="w-full p-3 border border-input rounded-md bg-background focus:ring-2 focus:ring-ring focus:border-transparent" data-bind="user.firstName" value="Jean" data-mock="true">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-foreground mb-2">Nom *</label>
+                                <input type="text" required class="w-full p-3 border border-input rounded-md bg-background focus:ring-2 focus:ring-ring focus:border-transparent" data-bind="user.lastName" value="Dupont" data-mock="true">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 mt-4">
+                            <div>
+                                <label class="block text-sm font-medium text-foreground mb-2">Email *</label>
+                                <input type="email" required class="w-full p-3 border border-input rounded-md bg-background focus:ring-2 focus:ring-ring focus:border-transparent" data-bind="user.email" value="jean.dupont@email.com" data-mock="true">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-foreground mb-2">Téléphone</label>
+                                <input type="tel" class="w-full p-3 border border-input rounded-md bg-background focus:ring-2 focus:ring-ring focus:border-transparent" placeholder="+33 1 23 45 67 89">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Documents -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-foreground mb-4">Documents</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-foreground mb-2">CV * (PDF, DOC, DOCX - Max 5MB)</label>
+                                <div class="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer">
+                                    <i data-lucide="upload" class="h-8 w-8 text-muted-foreground mx-auto mb-2"></i>
+                                    <p class="text-sm text-muted-foreground">Cliquez pour télécharger votre CV ou glissez-déposez</p>
+                                    <input type="file" class="hidden" accept=".pdf,.doc,.docx" data-implementation="File upload handler needed">
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-foreground mb-2">Lettre de motivation (optionnel)</label>
+                                <div class="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary transition-colors cursor-pointer">
+                                    <i data-lucide="upload" class="h-8 w-8 text-muted-foreground mx-auto mb-2"></i>
+                                    <p class="text-sm text-muted-foreground">Cliquez pour télécharger votre lettre de motivation</p>
+                                    <input type="file" class="hidden" accept=".pdf,.doc,.docx" data-implementation="File upload handler needed">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Cover Letter -->
+                    <div>
+                        <label class="block text-sm font-medium text-foreground mb-2">Message de motivation</label>
+                        <textarea rows="5" class="w-full p-3 border border-input rounded-md bg-background focus:ring-2 focus:ring-ring focus:border-transparent" placeholder="Expliquez votre motivation pour ce poste et mettez en avant vos compétences clés..."></textarea>
+                    </div>
+                    
+                    <!-- Availability -->
+                    <div>
+                        <h3 class="text-lg font-semibold text-foreground mb-4">Disponibilité</h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-foreground mb-2">Date de disponibilité</label>
+                                <input type="date" class="w-full p-3 border border-input rounded-md bg-background focus:ring-2 focus:ring-ring focus:border-transparent">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-foreground mb-2">Prétentions salariales</label>
+                                <input type="text" class="w-full p-3 border border-input rounded-md bg-background focus:ring-2 focus:ring-ring focus:border-transparent" placeholder="Ex: 45k € brut/an">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Consent -->
+                    <div>
+                        <label class="flex items-start space-x-3">
+                            <input type="checkbox" required class="mt-1 rounded border-border text-primary focus:ring-ring">
+                            <span class="text-sm text-muted-foreground">
+                                J'autorise le traitement de mes données personnelles conformément au RGPD pour les besoins de ce processus de recrutement. 
+                                <a href="#" class="text-primary hover:text-primary/80">En savoir plus</a>
+                            </span>
+                        </label>
+                    </div>
+                    
+                    <!-- Submit -->
+                    <div class="flex justify-end space-x-4 pt-6 border-t border-border">
+                        <button type="button" class="px-6 py-2 border border-border rounded-md text-foreground hover:bg-accent transition-colors" data-action="close-modal">
+                            Annuler
+                        </button>
+                        <button type="submit" class="px-6 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md font-medium transition-colors" data-implementation="Form submission with file uploads">
+                            Envoyer ma candidature
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: ApplicationModal -->
+
+        <!-- Public Footer -->
+        <footer class="bg-card border-t border-border py-12">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                    <div>
+                        <div class="flex items-center space-x-2 mb-4">
+                            <i data-lucide="briefcase" class="h-6 w-6 text-primary"></i>
+                            <span class="text-lg font-bold text-foreground">JobPortal</span>
+                        </div>
+                        <p class="text-muted-foreground text-sm">
+                            Plateforme de recrutement moderne pour connecter les talents aux opportunités.
+                        </p>
+                    </div>
+                    
+                    <div>
+                        <h3 class="font-semibold text-foreground mb-4">Candidats</h3>
+                        <ul class="space-y-2 text-sm text-muted-foreground">
+                            <li><a href="#" class="hover:text-primary transition-colors">Rechercher un emploi</a></li>
+                            <li><a href="#" class="hover:text-primary transition-colors">Créer un CV</a></li>
+                            <li><a href="#" class="hover:text-primary transition-colors">Conseils carrière</a></li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h3 class="font-semibold text-foreground mb-4">Entreprises</h3>
+                        <ul class="space-y-2 text-sm text-muted-foreground">
+                            <li><a href="#" class="hover:text-primary transition-colors">Publier une offre</a></li>
+                            <li><a href="#" class="hover:text-primary transition-colors">Rechercher des talents</a></li>
+                            <li><a href="#" class="hover:text-primary transition-colors">Solutions RH</a></li>
+                        </ul>
+                    </div>
+                    
+                    <div>
+                        <h3 class="font-semibold text-foreground mb-4">Support</h3>
+                        <ul class="space-y-2 text-sm text-muted-foreground">
+                            <li><a href="#" class="hover:text-primary transition-colors">Centre d'aide</a></li>
+                            <li><a href="#" class="hover:text-primary transition-colors">Contact</a></li>
+                            <li><a href="#" class="hover:text-primary transition-colors">Confidentialité</a></li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="mt-8 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center">
+                    <p class="text-sm text-muted-foreground">
+                        © 2024 JobPortal. Tous droits réservés.
+                    </p>
+                    <div class="flex space-x-6 mt-4 md:mt-0">
+                        <a href="#" class="text-muted-foreground hover:text-primary transition-colors">
+                            <i data-lucide="linkedin" class="h-5 w-5"></i>
+                        </a>
+                        <a href="#" class="text-muted-foreground hover:text-primary transition-colors">
+                            <i data-lucide="twitter" class="h-5 w-5"></i>
+                        </a>
+                        <a href="#" class="text-muted-foreground hover:text-primary transition-colors">
+                            <i data-lucide="facebook" class="h-5 w-5"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+    
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+        
+        // Modal management
+        (function() {
+            const modals = {
+                login: document.getElementById('loginModal'),
+                register: document.getElementById('registerModal'),
+                application: document.getElementById('applicationModal')
+            };
+            
+            function showModal(modalName) {
+                hideAllModals();
+                if (modals[modalName]) {
+                    modals[modalName].classList.remove('hidden');
+                }
+            }
+            
+            function hideAllModals() {
+                Object.values(modals).forEach(modal => {
+                    if (modal) modal.classList.add('hidden');
+                });
+            }
+            
+            // Event listeners for modal triggers
+            document.addEventListener('click', function(e) {
+                const action = e.target.closest('[data-action]')?.dataset.action;
+                
+                switch(action) {
+                    case 'login':
+                        showModal('login');
+                        break;
+                    case 'register':
+                        showModal('register');
+                        break;
+                    case 'apply-job':
+                        // TODO: Check if user is logged in, otherwise show login modal
+                        showModal('application');
+                        break;
+                    case 'close-modal':
+                        hideAllModals();
+                        break;
+                    case 'switch-to-register':
+                        showModal('register');
+                        break;
+                    case 'switch-to-login':
+                        showModal('login');
+                        break;
+                }
+            });
+            
+            // Close modal when clicking outside
+            Object.values(modals).forEach(modal => {
+                if (modal) {
+                    modal.addEventListener('click', function(e) {
+                        if (e.target === modal) {
+                            hideAllModals();
+                        }
+                    });
+                }
+            });
+        })();
+        
+        // Form handling
+        document.addEventListener('submit', function(e) {
+            const form = e.target.closest('[data-form]');
+            if (!form) return;
+            
+            e.preventDefault();
+            const formType = form.dataset.form;
+            
+            // TODO: Implement actual form submission logic
+            console.log(`Submitting ${formType} form`);
+            
+            // Simulate successful login to show dashboard
+            if (formType === 'login') {
+                document.getElementById('app').classList.add('hidden');
+                document.getElementById('candidateDashboard').classList.remove('hidden');
+            }
+        });
+        
+        // File upload simulation
+        document.addEventListener('change', function(e) {
+            if (e.target.type === 'file') {
+                const file = e.target.files[0];
+                if (file) {
+                    const parent = e.target.closest('.border-dashed');
+                    if (parent) {
+                        const p = parent.querySelector('p');
+                        if (p) {
+                            p.textContent = `Fichier sélectionné: ${file.name}`;
+                            parent.classList.add('border-green-500', 'bg-green-50');
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Language switching simulation
+        document.addEventListener('change', function(e) {
+            if (e.target.type === 'select-one' && e.target.options) {
+                // TODO: Implement i18n language switching
+                console.log('Language changed to:', e.target.value);
+            }
+        });
+    </script>
+</body>
+</html>
