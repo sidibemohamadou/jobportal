@@ -18,7 +18,9 @@ fi
 
 # Chargement des variables d'environnement
 echo "📝 Chargement des variables d'environnement..."
-export $(cat .env.production | grep -v '^#' | xargs)
+set -a
+source .env.production
+set +a
 
 # Vérification de la base de données
 if [ -n "$DATABASE_URL" ]; then

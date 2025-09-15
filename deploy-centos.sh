@@ -78,7 +78,7 @@ systemctl enable firewalld
 systemctl start firewalld
 firewall-cmd --permanent --add-service=http
 firewall-cmd --permanent --add-service=https
-firewall-cmd --permanent --add-port=5000/tcp
+# Note: Port 5000 n'est PAS ouvert - l'app est accessible uniquement via Nginx
 firewall-cmd --reload
 
 # Création de l'utilisateur application
@@ -155,17 +155,21 @@ EOF
 
 chmod 600 /etc/$APP_NAME.env
 
-# Installation des dépendances Node.js
+# Installation des dépendances Node.js (avec devDependencies pour le build)
 log "Installation des dépendances Node.js..."
-sudo -u $APP_USER npm ci --production
+sudo -u $APP_USER npm ci
+
+# Build de l'application
+log "Build de l'application..."
+sudo -u $APP_USER npm run build
 
 # Application des migrations de base de données
 log "Application des migrations..."
 sudo -u $APP_USER bash -c "source /etc/$APP_NAME.env && npm run db:push"
 
-# Build de l'application
-log "Build de l'application..."
-sudo -u $APP_USER npm run build
+# Nettoyage des devDependencies pour la production
+log "Nettoyage des dépendances de développement..."
+sudo -u $APP_USER npm prune --omit=dev
 
 # Création du service systemd
 log "Configuration du service systemd..."
@@ -258,12 +262,13 @@ fi
 
 # Affichage des informations finales
 log "=== DÉPLOIEMENT TERMINÉ ==="
-echo "Base de données: postgresql://$DB_USER:$DB_PASSWORD@localhost:5432/$DB_NAME"
+echo "Base de données: postgresql://$DB_USER:***@localhost:5432/$DB_NAME"
 echo "Configuration: /etc/$APP_NAME.env"
 echo "Logs: journalctl -u $SERVICE_NAME -f"
 echo "Application: http://votre-ip/"
 echo ""
-echo "Pour configurer SSL avec Let's Encrypt :"
-echo "certbot --nginx -d votre-domaine.com"
+echo "🔐 IMPORTANT: Le mot de passe de la base de données est stocké dans /etc/$APP_NAME.env"
+echo "📋 Pour configurer SSL avec Let's Encrypt :"
+echo "   certbot --nginx -d votre-domaine.com"
 echo ""
 log "✅ Déploiement terminé avec succès !"
