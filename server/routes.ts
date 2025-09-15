@@ -83,7 +83,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertApplicationSchema.parse(req.body);
       
       // Convert availability string to Date if provided
-      if (validatedData.availability) {
+      if (validatedData.availability && typeof validatedData.availability === 'string') {
         validatedData.availability = new Date(validatedData.availability);
       }
       
