@@ -1,113 +1,100 @@
 #!/bin/bash
 
-echo "🚀 Déploiement JobPortal sur CentOS 10 Stream"
-echo "============================================="
-echo ""
+# Déploiement JobPortal sur CentOS 10 avec PM2 et PostgreSQL
+set -e
 
-# Variables de configuration
 APP_NAME="jobportal"
 APP_DIR="/var/www/$APP_NAME"
-SERVICE_USER="nginx"
-NGINX_CONF_DIR="/etc/nginx/conf.d"
 DB_NAME="jobportal"
 DB_USER="jobportal_user"
-DB_PASSWORD="jobportal_secure_password_2025"
-APP_PORT=5001
+DB_PASSWORD="jobportal_password"
+PORT=5001
+SERVICE_USER="nginx"
 
-# Vérifier les privilèges root
-if [ "$EUID" -ne 0 ]; then 
-    echo "⚠️  Ce script doit être exécuté en tant que root (sudo)"
-    exit 1
+echo "🚀 Déploiement de $APP_NAME"
+
+# Vérifier root
+if [ "$EUID" -ne 0 ]; then
+  echo "⚠️  Lancez le script en root (sudo)"
+  exit 1
 fi
 
-echo "🔄 Mise à jour du système..."
-dnf update -y
+# Installer dépendances système
+echo "📦 Installation des dépendances..."
+dnf install -y curl git nginx postgresql postgresql-server postgresql-contrib nodejs npm
 
-echo "📦 Installation des dépendances système..."
-dnf install -y curl git nginx postgresql postgresql-server postgresql-contrib
-
-# Installer Node.js 20+
+# Vérifier Node.js
 if ! command -v node &> /dev/null; then
-    echo "📦 Installation de Node.js..."
-    dnf module install -y nodejs:20/common
+    echo "❌ Node.js non installé"
+    exit 1
 fi
 echo "✅ Node.js $(node -v) installé"
 
-# Installer PM2 si absent
+# Installer PM2 globalement
 if ! command -v pm2 &> /dev/null; then
     npm install -g pm2
 fi
 
-echo "🗄️ Configuration de PostgreSQL..."
-if [ ! -f /var/lib/pgsql/data/postgresql.conf ]; then
-    echo "🔧 Initialisation de PostgreSQL..."
-    sudo -u postgres /usr/bin/initdb -D /var/lib/pgsql/data
-fi
-systemctl start postgresql
-systemctl enable postgresql
-
-echo "🗄️ Création de la base de données et de l'utilisateur..."
-sudo -u postgres psql << EOF
-DO \$\$
-BEGIN
-   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '$DB_USER') THEN
-      CREATE ROLE $DB_USER WITH LOGIN PASSWORD '$DB_PASSWORD';
-   END IF;
-END
-\$\$;
-
--- Créer la base si elle n'existe pas
-DO \$\$
-BEGIN
-   IF NOT EXISTS (SELECT FROM pg_database WHERE datname = '$DB_NAME') THEN
-      CREATE DATABASE $DB_NAME OWNER $DB_USER;
-   END IF;
-END
-\$\$;
-EOF
-
-echo "📁 Création du répertoire de l'application..."
+# Créer répertoire d'app
 mkdir -p $APP_DIR
 chown -R $SERVICE_USER:$SERVICE_USER $APP_DIR
 
-echo "📂 Clone du projet JobPortal depuis GitHub..."
-cd /tmp
-rm -rf jobportal
-git clone https://github.com/sidibemohamadou/jobportal.git
-cp -r jobportal/* $APP_DIR/
-chown -R $SERVICE_USER:$SERVICE_USER $APP_DIR
-
+# Cloner ou mettre à jour JobPortal
 cd $APP_DIR
+if [ -d ".git" ]; then
+    sudo -u $SERVICE_USER git pull
+else
+    sudo -u $SERVICE_USER git clone https://github.com/sidibemohamadou/jobportal.git $APP_DIR
+fi
 
-echo "📦 Installation des dépendances Node.js..."
+# Installer dépendances Node
 sudo -u $SERVICE_USER npm install
 
-echo "🏗️ Build de l'application..."
+# Build de l'application
 sudo -u $SERVICE_USER npm run build
 
-echo "⚙️ Création du fichier d'environnement..."
-cat > .env << EOF
+# Créer fichier d'environnement
+cat > $APP_DIR/.env << EOF
 NODE_ENV=production
-PORT=$APP_PORT
-SESSION_SECRET=jobportal-secret-key-2025
+PORT=$PORT
 DATABASE_URL=postgresql://$DB_USER:$DB_PASSWORD@localhost:5432/$DB_NAME
-PGHOST=localhost
-PGPORT=5432
-PGUSER=$DB_USER
-PGPASSWORD=$DB_PASSWORD
-PGDATABASE=$DB_NAME
-APP_NAME="JobPortal"
 EOF
-chown $SERVICE_USER:$SERVICE_USER .env
+chown $SERVICE_USER:$SERVICE_USER $APP_DIR/.env
 
-echo "🔧 Configuration de Nginx sur le port $APP_PORT..."
-cat > $NGINX_CONF_DIR/$APP_NAME.conf << EOF
+# Créer fichier PM2 compatible ESM
+cat > $APP_DIR/ecosystem.config.mjs << EOF
+export default {
+  apps: [
+    {
+      name: "$APP_NAME",
+      script: "dist/index.js",
+      instances: 1,
+      autorestart: true,
+      watch: false,
+      env: {
+        NODE_ENV: "production",
+        PORT: $PORT
+      }
+    }
+  ]
+}
+EOF
+chown $SERVICE_USER:$SERVICE_USER $APP_DIR/ecosystem.config.mjs
+
+# Lancer l'application avec PM2
+sudo -u $SERVICE_USER pm2 stop $APP_NAME || true
+sudo -u $SERVICE_USER pm2 delete $APP_NAME || true
+sudo -u $SERVICE_USER pm2 start $APP_DIR/ecosystem.config.mjs --name $APP_NAME
+sudo -u $SERVICE_USER pm2 save
+
+# Configurer Nginx pour reverse proxy sur 5001
+cat > /etc/nginx/conf.d/$APP_NAME.conf << EOF
 server {
-    listen $APP_PORT;
+    listen $PORT;
     server_name _;
 
     location / {
-        proxy_pass http://localhost:$APP_PORT;
+        proxy_pass http://localhost:$PORT;
         proxy_http_version 1.1;
         proxy_set_header Upgrade \$http_upgrade;
         proxy_set_header Connection 'upgrade';
@@ -115,40 +102,13 @@ server {
         proxy_set_header X-Real-IP \$remote_addr;
         proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_cache_bypass \$http_upgrade;
     }
 }
 EOF
 
 nginx -t
 systemctl restart nginx
-systemctl enable nginx
 
-echo "🚀 Démarrage de l'application avec PM2..."
-cat > ecosystem.config.js << EOF
-module.exports = {
-  apps: [{
-    name: '$APP_NAME',
-    script: 'server/index.js',
-    env: {
-      NODE_ENV: 'production',
-      PORT: $APP_PORT
-    },
-    instances: 1,
-    autorestart: true,
-    watch: false,
-    max_memory_restart: '1G'
-  }]
-}
-EOF
-chown $SERVICE_USER:$SERVICE_USER ecosystem.config.js
-
-sudo -u $SERVICE_USER pm2 stop $APP_NAME 2>/dev/null || true
-sudo -u $SERVICE_USER pm2 delete $APP_NAME 2>/dev/null || true
-sudo -u $SERVICE_USER pm2 start ecosystem.config.js
-sudo -u $SERVICE_USER pm2 save
-
-echo ""
-echo "🎉 Déploiement terminé !"
-echo "💻 Accès à JobPortal via : http://$(hostname -I | awk '{print $1}'):$APP_PORT"
-echo "📋 Base de données : postgresql://$DB_USER:***@localhost:5432/$DB_NAME"
+echo "✅ Déploiement terminé !"
+echo "🔗 Accès à l'application : http://$(hostname -I | awk '{print $1}'):$PORT"
+echo "📄 Logs PM2 : sudo -u $SERVICE_USER pm2 logs $APP_NAME"
