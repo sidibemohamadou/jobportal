@@ -122,7 +122,7 @@ if [ -d "$APP_DIR/.git" ]; then
     sudo -u $APP_USER git pull
 else
     # Si vous utilisez un repo Git, décommentez et modifiez cette ligne :
-    # sudo -u $APP_USER git clone https://github.com/votre-username/votre-repo.git $APP_DIR
+     sudo -u $APP_USER git clone https://github.com/sidibemohamadou/jobportal.git $APP_DIR
     
     # Pour l'instant, on copie le code depuis le répertoire courant
     if [ -f "package.json" ]; then
