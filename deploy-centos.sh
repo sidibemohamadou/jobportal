@@ -1,231 +1,67 @@
 #!/bin/bash
 
-# Script de déploiement automatique JobPortal sur CentOS
-# Usage: sudo ./deploy-centos.sh [production|staging]
+echo "💼 Déploiement Serveur avec PostgreSQL - JobPortal"
+echo "================================================="
+echo "📋 Système détecté: CentOS 10 Stream"
+echo ""
 
-set -euo pipefail
+# Variables de configuration
+APP_NAME="jobportal"
+APP_DIR="/var/www/$APP_NAME"
+SERVICE_USER="nginx"
+NGINX_CONF_DIR="/etc/nginx/conf.d"
+DB_NAME="jobportal_db"
+DB_USER="jobportal_user"
+DB_PASSWORD="jobportal_secure_password_2025"
 
-# -------------------------------
-# Configuration
-# -------------------------------
-APP_NAME="hrapp"
-APP_USER="hrapp"
-APP_DIR="/opt/hrapp"
-SERVICE_NAME="hrapp"
-DB_NAME="hrapp"
-DB_USER="hrapp"
-NODE_VERSION="20"
-
-# Couleurs pour logs
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
-
-log() { echo -e "${GREEN}[$(date '+%Y-%m-%d %H:%M:%S')] $1${NC}"; }
-warn() { echo -e "${YELLOW}[$(date '+%Y-%m-%d %H:%M:%S')] WARNING: $1${NC}"; }
-error() { echo -e "${RED}[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: $1${NC}"; exit 1; }
-
-# -------------------------------
-# Vérification des droits root
-# -------------------------------
-if [[ $EUID -ne 0 ]]; then
-   error "Ce script doit être exécuté en tant que root"
+# Vérifier les privilèges root
+if [ "$EUID" -ne 0 ]; then 
+    echo "⚠️  Ce script doit être exécuté en tant que root (sudo)"
+    echo "Usage: sudo ./deploy-jobportal.sh"
+    exit 1
 fi
 
-ENVIRONMENT=${1:-production}
-log "Déploiement en mode: $ENVIRONMENT"
+echo "🔄 Mise à jour du système..."
+dnf update -y
 
-# -------------------------------
-# Mise à jour du système
-# -------------------------------
-log "Mise à jour du système..."
-dnf update -y || yum update -y
+echo "📦 Installation des dépendances système..."
+dnf install -y curl git nginx postgresql postgresql-server postgresql-contrib
 
-# -------------------------------
-# Installation de Node.js
-# -------------------------------
-log "Installation de Node.js $NODE_VERSION..."
+# Installer Node.js 18+ si nécessaire
 if ! command -v node &> /dev/null; then
-    curl -fsSL https://rpm.nodesource.com/setup_${NODE_VERSION}.x | bash -
-    dnf install -y nodejs || yum install -y nodejs
+    echo "📦 Installation de Node.js..."
+    dnf module install -y nodejs:18/common
 fi
 
-# -------------------------------
-# Installation des dépendances système
-# -------------------------------
-log "Installation des dépendances système..."
-dnf install -y git curl wget firewalld nginx certbot python3-certbot-nginx || \
-yum install -y git curl wget firewalld nginx certbot python3-certbot-nginx
+echo "✅ Node.js $(node -v) installé"
 
-# -------------------------------
-# Configuration du firewall
-# -------------------------------
-log "Configuration du firewall..."
-systemctl enable firewalld
-systemctl start firewalld
-firewall-cmd --permanent --add-service=http
-firewall-cmd --permanent --add-service=https
-firewall-cmd --reload
-
-# -------------------------------
-# Création de l'utilisateur et des répertoires
-# -------------------------------
-log "Création de l'utilisateur $APP_USER..."
-if ! id "$APP_USER" &>/dev/null; then
-    useradd -r -s /bin/bash -d $APP_DIR $APP_USER
+# Installer PM2 si nécessaire
+if ! command -v pm2 &> /dev/null; then
+    echo "📦 Installation de PM2..."
+    npm install -g pm2
 fi
 
-log "Création des répertoires..."
-mkdir -p $APP_DIR /var/log/$APP_NAME
-chown -R $APP_USER:$APP_USER $APP_DIR /var/log/$APP_NAME
+echo "🗄️ Configuration de PostgreSQL..."
+# Initialiser PostgreSQL si nécessaire
+if [ ! -f /var/lib/pgsql/data/postgresql.conf ]; then
+    echo "🔧 Initialisation de PostgreSQL..."
+    postgresql-setup --initdb || echo "⚠️ PostgreSQL déjà initialisé"
+fi
 
-# -------------------------------
-# Configuration PostgreSQL
-# -------------------------------
-log "Configuration de PostgreSQL..."
-DB_PASSWORD=$(openssl rand -base64 32)
+# Démarrer et activer PostgreSQL
+systemctl start postgresql
+systemctl enable postgresql
 
+echo "🗄️ Configuration de la base de données..."
+# Créer la base de données et l'utilisateur
 sudo -u postgres psql << EOF
-DO \$\$
-BEGIN
-   IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '$DB_USER') THEN
-      CREATE ROLE $DB_USER LOGIN PASSWORD '$DB_PASSWORD';
-   END IF;
-END
-\$\$;
+-- Créer l'utilisateur
+CREATE USER $DB_USER WITH PASSWORD '$DB_PASSWORD';
 
-DO \$\$
-BEGIN
-   IF NOT EXISTS (SELECT FROM pg_database WHERE datname = '$DB_NAME') THEN
-      CREATE DATABASE $DB_NAME OWNER $DB_USER;
-   END IF;
-END
-\$\$;
-EOF
+-- Créer la base de données
+CREATE DATABASE $DB_NAME OWNER $DB_USER;
 
-# -------------------------------
-# Déploiement du code
-# -------------------------------
-log "Déploiement du code..."
-if [ -d "$APP_DIR/.git" ]; then
-    cd $APP_DIR
-    sudo -u $APP_USER git pull
-else
-    sudo -u $APP_USER git clone https://github.com/sidibemohamadou/jobportal.git $APP_DIR
-fi
+-- Donner tous les privilèges
+GRANT ALL PRIVILEGES ON DATABASE $DB_NAME TO $DB_USER;
 
-cd $APP_DIR
-
-# -------------------------------
-# Configuration des secrets et .env
-# -------------------------------
-log "Génération des secrets..."
-SESSION_SECRET=$(openssl rand -base64 64)
-
-log "Création du fichier d'environnement..."
-cat > /etc/$APP_NAME.env << EOF
-NODE_ENV=$ENVIRONMENT
-PORT=5000
-DATABASE_URL=postgresql://$DB_USER:$DB_PASSWORD@localhost:5432/$DB_NAME
-SESSION_SECRET=$SESSION_SECRET
-PGSSL=false
-TZ=Europe/Paris
-LOG_LEVEL=info
-EOF
-chmod 600 /etc/$APP_NAME.env
-
-# -------------------------------
-# Installation Node.js / build
-# -------------------------------
-log "Installation des dépendances Node.js..."
-sudo -u $APP_USER npm ci
-
-log "Build de l'application..."
-sudo -u $APP_USER npm run build
-
-log "Application des migrations..."
-sudo -u $APP_USER bash -c "source /etc/$APP_NAME.env && npm run db:push"
-
-sudo -u $APP_USER npm prune --omit=dev
-
-# -------------------------------
-# Configuration systemd
-# -------------------------------
-log "Configuration du service systemd..."
-cat > /etc/systemd/system/$SERVICE_NAME.service << EOF
-[Unit]
-Description=HR Application
-After=network.target
-Wants=network.target
-
-[Service]
-Type=simple
-User=$APP_USER
-WorkingDirectory=$APP_DIR
-EnvironmentFile=/etc/$APP_NAME.env
-ExecStart=/usr/bin/node dist/index.js
-Restart=always
-RestartSec=5
-StandardOutput=journal
-StandardError=journal
-SyslogIdentifier=$APP_NAME
-NoNewPrivileges=yes
-PrivateTmp=yes
-ProtectSystem=strict
-ProtectHome=yes
-ReadWritePaths=$APP_DIR /var/log/$APP_NAME
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-# -------------------------------
-# Configuration Nginx
-# -------------------------------
-log "Configuration de Nginx..."
-cat > /etc/nginx/conf.d/$APP_NAME.conf << EOF
-server {
-    listen 80;
-    server_name _;
-
-    location / {
-        proxy_pass http://localhost:5000;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection 'upgrade';
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_cache_bypass \$http_upgrade;
-    }
-}
-EOF
-
-nginx -t
-systemctl enable nginx
-systemctl restart nginx
-
-# -------------------------------
-# Démarrage du service
-# -------------------------------
-log "Démarrage des services..."
-systemctl daemon-reload
-systemctl enable $SERVICE_NAME
-systemctl restart $SERVICE_NAME
-
-# -------------------------------
-# Vérification
-# -------------------------------
-log "Vérification du statut des services..."
-systemctl status $SERVICE_NAME --no-pager
-systemctl status nginx --no-pager
-
-log "=== DÉPLOIEMENT TERMINÉ ==="
-echo "Base de données: postgresql://$DB_USER:***@localhost:5432/$DB_NAME"
-echo "Configuration: /etc/$APP_NAME.env"
-echo "Logs: journalctl -u $SERVICE_NAME -f"
-echo "Application: http://votre-ip/"
-echo "🔐 IMPORTANT: Le mot de passe de la base de données est stocké dans /etc/$APP_NAME.env"
-log "✅ Déploiement terminé avec succès !"
+-- Se connect
