@@ -152,43 +152,141 @@ export class AuthService {
     return requiredRoles.includes(userRole);
   }
 
-  // Permissions par rôle
+  // Système de permissions RBAC complet avec héritage
+  static getRoleHierarchy(): Record<string, number> {
+    return {
+      candidate: 1,
+      employee: 2,
+      recruiter: 3,
+      manager: 4,
+      hr: 5,
+      admin: 10 // Super admin avec tous les privilèges
+    };
+  }
+
+  // Permissions par rôle avec héritage automatique
   static getRolePermissions(role: string): string[] {
-    const permissions: Record<string, string[]> = {
-      admin: ["*"], // Accès complet
-      hr: [
-        "view_candidates",
-        "manage_employees", 
-        "view_applications",
-        "manage_contracts",
-        "manage_payroll",
-        "manage_leaves"
+    const basePermissions: Record<string, string[]> = {
+      candidate: [
+        "view_jobs",
+        "submit_applications", 
+        "view_application_status",
+        "view_own_profile",
+        "edit_own_profile"
+      ],
+      employee: [
+        "view_profile",
+        "submit_requests",
+        "view_payslips",
+        "view_own_documents",
+        "request_time_off",
+        "clock_in_out"
       ],
       recruiter: [
         "view_candidates",
         "manage_jobs",
-        "view_applications", 
+        "view_applications",
+        "assign_applications", 
         "score_candidates",
-        "conduct_interviews"
+        "conduct_interviews",
+        "manage_candidate_pipeline",
+        "view_interview_feedback"
       ],
       manager: [
         "view_team",
         "approve_leaves",
         "view_reports",
-        "manage_team_performance"
+        "manage_team_performance",
+        "conduct_performance_reviews",
+        "approve_timesheets",
+        "view_team_analytics"
       ],
-      employee: [
-        "view_profile",
-        "submit_requests",
-        "view_payslips"
+      hr: [
+        "manage_employees",
+        "view_all_candidates",
+        "manage_contracts",
+        "manage_payroll", 
+        "manage_leaves",
+        "manage_benefits",
+        "view_hr_reports",
+        "manage_onboarding",
+        "manage_employee_documents",
+        "manage_training",
+        "manage_disciplinary_actions",
+        "view_all_applications"
       ],
-      candidate: [
-        "view_jobs",
-        "submit_applications",
-        "view_application_status"
+      admin: [
+        "*", // Accès complet pour super admin
+        "manage_users",
+        "create_sensitive_roles", // Privilège exclusif super admin
+        "manage_system_settings",
+        "view_audit_logs",
+        "manage_integrations",
+        "manage_security_settings",
+        "backup_restore_data",
+        "manage_role_permissions"
       ]
     };
 
-    return permissions[role] || [];
+    const hierarchy = this.getRoleHierarchy();
+    const currentLevel = hierarchy[role] || 0;
+    let permissions: string[] = [];
+
+    // Ajouter les permissions du rôle actuel
+    permissions = [...(basePermissions[role] || [])];
+
+    // Héritage des permissions des rôles inférieurs (si pas admin)
+    if (role !== "admin") {
+      Object.entries(basePermissions).forEach(([r, perms]) => {
+        if (hierarchy[r] < currentLevel && r !== "admin") {
+          // Exclure certaines permissions spécifiques qui ne doivent pas être héritées
+          const inheritablePerms = perms.filter(p => 
+            !p.includes("manage_system_") && 
+            !p.includes("create_sensitive_") &&
+            !p.includes("backup_restore_")
+          );
+          permissions = [...permissions, ...inheritablePerms];
+        }
+      });
+    }
+
+    // Supprimer les doublons
+    return [...new Set(permissions)];
+  }
+
+  // Vérifier si un rôle peut créer/modifier un autre rôle
+  static canManageRole(currentUserRole: string, targetRole: string): boolean {
+    const hierarchy = this.getRoleHierarchy();
+    const sensitiveRoles = ["hr", "manager", "recruiter", "admin"];
+    
+    // Seul le super admin peut créer des rôles sensibles
+    if (sensitiveRoles.includes(targetRole) && currentUserRole !== "admin") {
+      return false;
+    }
+
+    // Vérifier la hiérarchie
+    return hierarchy[currentUserRole] > hierarchy[targetRole];
+  }
+
+  // Permissions spécialisées pour modules
+  static getModuleAccess(role: string): Record<string, boolean> {
+    const permissions = this.getRolePermissions(role);
+    const hasAll = permissions.includes("*");
+
+    return {
+      dashboard: true, // Tous ont accès au dashboard
+      candidates: hasAll || permissions.some(p => p.includes("candidate") || p.includes("view_applications")),
+      jobs: hasAll || permissions.some(p => p.includes("jobs") || p.includes("manage_jobs")),
+      applications: hasAll || permissions.some(p => p.includes("applications")),
+      interviews: hasAll || permissions.some(p => p.includes("interview")),
+      onboarding: hasAll || permissions.some(p => p.includes("onboarding")),
+      employees: hasAll || permissions.some(p => p.includes("manage_employees")),
+      contracts: hasAll || permissions.some(p => p.includes("contracts")),
+      payroll: hasAll || permissions.some(p => p.includes("payroll")),
+      reports: hasAll || permissions.some(p => p.includes("reports") || p.includes("analytics")),
+      users: hasAll || permissions.includes("manage_users"),
+      settings: hasAll || permissions.some(p => p.includes("settings")),
+      hr_management: hasAll || permissions.some(p => p.includes("manage_employees") || p.includes("hr")),
+    };
   }
 }
