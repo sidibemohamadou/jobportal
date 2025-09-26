@@ -24,12 +24,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     next();
   };
 
+  // Enhanced RBAC Middleware
   const requireAdminRole = async (req: any, res: any, next: any) => {
     const user = req.user;
-    if (!user?.role || !["admin", "hr", "recruiter"].includes(user.role)) {
-      return res.status(403).json({ message: "Access denied" });
+    if (!user?.role || !["admin", "hr", "recruiter", "manager"].includes(user.role)) {
+      return res.status(403).json({ message: "Accès refusé. Permissions administrateur requises." });
     }
     next();
+  };
+
+  // Super Admin only middleware
+  const requireSuperAdmin = async (req: any, res: any, next: any) => {
+    const user = req.user;
+    if (!user?.role || user.role !== "admin") {
+      return res.status(403).json({ 
+        message: "Accès refusé. Seuls les super administrateurs ont accès à cette fonctionnalité." 
+      });
+    }
+    next();
+  };
+
+  // HR or Admin middleware
+  const requireHROrAdmin = async (req: any, res: any, next: any) => {
+    const user = req.user;
+    if (!user?.role || !["admin", "hr"].includes(user.role)) {
+      return res.status(403).json({ 
+        message: "Accès refusé. Permissions RH ou administrateur requises." 
+      });
+    }
+    next();
+  };
+
+  // Manager or higher middleware
+  const requireManagerOrHigher = async (req: any, res: any, next: any) => {
+    const user = req.user;
+    const AuthService = (await import("./auth")).AuthService;
+    const hierarchy = AuthService.getRoleHierarchy();
+    const userLevel = hierarchy[user?.role] || 0;
+    
+    if (userLevel < hierarchy.manager) {
+      return res.status(403).json({ 
+        message: "Accès refusé. Permissions manager ou supérieures requises." 
+      });
+    }
+    next();
+  };
+
+  // Permission-based middleware factory
+  const requirePermissions = (permissions: string[]) => {
+    return async (req: any, res: any, next: any) => {
+      const user = req.user;
+      if (!user?.role) {
+        return res.status(401).json({ message: "Authentification requise" });
+      }
+
+      const AuthService = (await import("./auth")).AuthService;
+      const userPermissions = AuthService.getRolePermissions(user.role);
+      
+      // Check if user has all required permissions or has wildcard access
+      const hasPermission = userPermissions.includes("*") || 
+                           permissions.every(perm => userPermissions.includes(perm));
+      
+      if (!hasPermission) {
+        return res.status(403).json({ 
+          message: `Accès refusé. Permissions requises: ${permissions.join(", ")}` 
+        });
+      }
+      next();
+    };
   };
 
   // Routes publiques - Jobs
@@ -104,8 +166,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Routes admin
-  app.get("/api/admin/jobs", requireAuth, requireAdminRole, async (req, res) => {
+  // Routes admin avec RBAC renforcé
+  app.get("/api/admin/jobs", requireAuth, requirePermissions(["manage_jobs", "view_applications"]), async (req, res) => {
     try {
       const jobs = await storage.getAllJobs();
       res.json(jobs);
@@ -115,7 +177,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/jobs", requireAuth, requireAdminRole, async (req, res) => {
+  app.post("/api/admin/jobs", requireAuth, requirePermissions(["manage_jobs"]), async (req, res) => {
     try {
       // Validation des données avec le schéma Zod
       const validatedData = insertJobSchema.parse(req.body);
@@ -138,7 +200,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/admin/jobs/:id", requireAuth, requireAdminRole, async (req, res) => {
+  app.patch("/api/admin/jobs/:id", requireAuth, requirePermissions(["manage_jobs"]), async (req, res) => {
     try {
       const jobId = parseInt(req.params.id);
       if (isNaN(jobId)) {
@@ -170,7 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/admin/jobs/:id", requireAuth, requireAdminRole, async (req, res) => {
+  app.delete("/api/admin/jobs/:id", requireAuth, requirePermissions(["manage_jobs"]), async (req, res) => {
     try {
       const jobId = parseInt(req.params.id);
       if (isNaN(jobId)) {
@@ -190,7 +252,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/admin/applications", requireAuth, requireAdminRole, async (req, res) => {
+  app.get("/api/admin/applications", requireAuth, requirePermissions(["view_all_applications", "view_applications"]), async (req, res) => {
     try {
       const applications = await storage.getAllApplications();
       res.json(applications);
@@ -200,7 +262,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/admin/applications/:id", requireAuth, requireAdminRole, async (req, res) => {
+  app.patch("/api/admin/applications/:id", requireAuth, requirePermissions(["view_applications", "score_candidates"]), async (req, res) => {
     try {
       const applicationId = parseInt(req.params.id);
       if (isNaN(applicationId)) {
@@ -232,7 +294,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/admin/applications/:id", requireAuth, requireAdminRole, async (req, res) => {
+  app.delete("/api/admin/applications/:id", requireAuth, requirePermissions(["manage_applications"]), async (req, res) => {
     try {
       const applicationId = parseInt(req.params.id);
       if (isNaN(applicationId)) {
@@ -262,15 +324,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Routes utilisateur
+  // Routes utilisateur avec RBAC amélioré
+  app.get("/api/users", requireAuth, async (req, res) => {
+    try {
+      const currentUser = req.user as any;
+      
+      // Vérifier les permissions pour voir tous les utilisateurs
+      if (!["admin", "hr"].includes(currentUser.role)) {
+        return res.status(403).json({ message: "Accès refusé. Permissions insuffisantes." });
+      }
+
+      const { role } = req.query;
+      const users = role ? await storage.getUsersByRole(role as string) : await storage.getAllUsers();
+      
+      // Enrichir avec les permissions pour chaque utilisateur
+      const AuthService = (await import('./auth')).AuthService;
+      const usersWithPermissions = users.map((user: any) => ({
+        ...user,
+        permissions: AuthService.getRolePermissions(user.role),
+        moduleAccess: AuthService.getModuleAccess(user.role),
+        // Masquer le mot de passe
+        password: undefined
+      }));
+      
+      res.json(usersWithPermissions);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
   app.get("/api/users/:id", requireAuth, async (req, res) => {
     try {
       const userId = req.params.id;
+      const currentUser = req.user as any;
+      
+      // Vérifications RBAC
+      const canViewUser = (
+        userId === currentUser.id || // Voir son propre profil
+        ["admin", "hr"].includes(currentUser.role) || // Admin/HR peuvent voir tous
+        (currentUser.role === "manager" && currentUser.managedUsers?.includes(userId)) // Manager peut voir son équipe
+      );
+
+      if (!canViewUser) {
+        return res.status(403).json({ message: "Accès refusé" });
+      }
+
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
-      res.json(user);
+      
+      // Enrichir avec permissions et masquer le mot de passe
+      const AuthService = (await import('./auth')).AuthService;
+      const userWithPermissions = {
+        ...user,
+        permissions: AuthService.getRolePermissions(user.role),
+        moduleAccess: AuthService.getModuleAccess(user.role),
+        password: undefined
+      };
+      
+      res.json(userWithPermissions);
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
@@ -280,29 +394,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/users/:id", requireAuth, async (req, res) => {
     try {
       const userId = req.params.id;
+      const currentUser = req.user as any;
       
-      // Vérification des permissions
-      if (userId !== (req.user as any)?.id && !["admin", "hr"].includes((req.user as any)?.role || "")) {
-        return res.status(403).json({ message: "Access denied" });
+      // Vérifications RBAC avancées
+      const isOwnProfile = userId === currentUser.id;
+      const isAdminOrHR = ["admin", "hr"].includes(currentUser.role);
+      const isManager = currentUser.role === "manager" && currentUser.managedUsers?.includes(userId);
+
+      if (!isOwnProfile && !isAdminOrHR && !isManager) {
+        return res.status(403).json({ message: "Accès refusé" });
+      }
+
+      // Restrictions sur la modification du rôle
+      if (req.body.role && req.body.role !== currentUser.role) {
+        const AuthService = (await import('./auth')).AuthService;
+        if (!AuthService.canManageRole(currentUser.role, req.body.role)) {
+          return res.status(403).json({ 
+            message: `Vous n'avez pas les permissions pour assigner le rôle '${req.body.role}'` 
+          });
+        }
+        
+        // Empêcher la modification de son propre rôle
+        if (isOwnProfile) {
+          return res.status(400).json({ 
+            message: "Impossible de modifier votre propre rôle" 
+          });
+        }
       }
 
       const updatedUser = await storage.updateUser(userId, req.body);
-      res.json(updatedUser);
+      
+      // Retourner avec permissions mises à jour
+      const AuthService = (await import('./auth')).AuthService;
+      const userWithPermissions = {
+        ...updatedUser,
+        permissions: AuthService.getRolePermissions(updatedUser.role),
+        moduleAccess: AuthService.getModuleAccess(updatedUser.role),
+        password: undefined
+      };
+      
+      res.json(userWithPermissions);
     } catch (error) {
       console.error("Error updating user:", error);
       res.status(500).json({ message: "Failed to update user" });
     }
   });
 
-  // Routes de gestion de la paie
-  app.get("/api/payroll", requireAuth, async (req, res) => {
+  app.delete("/api/users/:id", requireAuth, async (req, res) => {
     try {
-      const user = req.user as any;
+      const userId = req.params.id;
+      const currentUser = req.user as any;
       
-      if (!["admin", "hr"].includes(user.role)) {
-        return res.status(403).json({ message: "Accès refusé" });
+      // Seul le super admin peut supprimer des utilisateurs
+      if (currentUser.role !== "admin") {
+        return res.status(403).json({ 
+          message: "Seul le super administrateur peut supprimer des comptes utilisateurs" 
+        });
+      }
+      
+      // Empêcher la suppression de son propre compte
+      if (userId === currentUser.id) {
+        return res.status(400).json({ 
+          message: "Impossible de supprimer votre propre compte" 
+        });
       }
 
+      await storage.deleteUser(userId);
+      res.json({ message: "Utilisateur supprimé avec succès" });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ message: "Failed to delete user" });
+    }
+  });
+
+  // Routes de gestion de la paie avec RBAC renforcé
+  app.get("/api/payroll", requireAuth, requirePermissions(["manage_payroll"]), async (req, res) => {
+    try {
       const payrolls = await storage.getAllPayrolls();
       res.json(payrolls);
     } catch (error) {
@@ -311,14 +478,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/payroll", requireAuth, async (req, res) => {
+  app.post("/api/payroll", requireAuth, requirePermissions(["manage_payroll"]), async (req, res) => {
     try {
       const user = req.user as any;
       
-      if (!["admin", "hr"].includes(user.role)) {
-        return res.status(403).json({ message: "Accès refusé" });
-      }
-
       const payrollData = {
         ...req.body,
         createdBy: user.id
@@ -332,14 +495,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/payroll/:id", requireAuth, async (req, res) => {
+  app.put("/api/payroll/:id", requireAuth, requirePermissions(["manage_payroll"]), async (req, res) => {
     try {
-      const user = req.user as any;
-      
-      if (!["admin", "hr"].includes(user.role)) {
-        return res.status(403).json({ message: "Accès refusé" });
-      }
-
       const payrollId = parseInt(req.params.id);
       const updatedPayroll = await storage.updatePayroll(payrollId, req.body);
       res.json(updatedPayroll);
@@ -349,14 +506,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/payroll/:id/payslip", requireAuth, async (req, res) => {
+  app.get("/api/payroll/:id/payslip", requireAuth, requirePermissions(["manage_payroll", "view_payslips"]), async (req, res) => {
     try {
-      const user = req.user as any;
-      
-      if (!["admin", "hr"].includes(user.role)) {
-        return res.status(403).json({ message: "Accès refusé" });
-      }
-
       const payrollId = parseInt(req.params.id);
       const payroll = await storage.getPayroll(payrollId);
       
@@ -407,15 +558,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Routes des employés pour la paie
-  app.get("/api/employees", requireAuth, async (req, res) => {
+  // Routes des employés avec RBAC
+  app.get("/api/employees", requireAuth, requirePermissions(["manage_employees", "view_team"]), async (req, res) => {
     try {
-      const user = req.user as any;
-      
-      if (!["admin", "hr"].includes(user.role)) {
-        return res.status(403).json({ message: "Accès refusé" });
-      }
-
       const employees = await storage.getAllEmployees();
       res.json(employees);
     } catch (error) {

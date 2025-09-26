@@ -29,7 +29,11 @@ import {
   UserCheck,
   Building,
   ArrowRight,
-  Mail
+  Mail,
+  UserPlus,
+  Shield,
+  Edit,
+  Phone
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "wouter";
@@ -248,7 +252,7 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Tableau de bord
@@ -265,6 +269,12 @@ export default function AdminDashboard() {
               <Users className="h-4 w-4" />
               Gestion
             </TabsTrigger>
+            {(user as any)?.role === "admin" && (
+              <TabsTrigger value="profile" className="flex items-center gap-2">
+                <UserCheck className="h-4 w-4" />
+                Profil Admin
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -854,8 +864,632 @@ export default function AdminDashboard() {
               )}
             </div>
           </TabsContent>
+
+          {/* Profile Admin Tab - User Management */}
+          {(user as any)?.role === "admin" && (
+            <TabsContent value="profile" className="space-y-6">
+              <AdminProfileManagement />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
+    </div>
+  );
+}
+
+// Component for Admin Profile with User Management
+function AdminProfileManagement() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [activeSection, setActiveSection] = useState('overview');
+  
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold">Profil Administrateur</h2>
+        <p className="text-muted-foreground">
+          Gestion du profil et des utilisateurs - Accès Super Administrateur
+        </p>
+      </div>
+
+      <Tabs value={activeSection} onValueChange={setActiveSection} className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="overview" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Vue d'ensemble
+          </TabsTrigger>
+          <TabsTrigger value="users" className="flex items-center gap-2">
+            <UserPlus className="h-4 w-4" />
+            Gestion Utilisateurs
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="flex items-center gap-2">
+            <Shield className="h-4 w-4" />
+            Paramètres Système
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Overview Section */}
+        <TabsContent value="overview" className="space-y-6">
+          <AdminOverview />
+        </TabsContent>
+
+        {/* User Management Section */}
+        <TabsContent value="users" className="space-y-6">
+          <UserManagementInterface />
+        </TabsContent>
+
+        {/* System Settings Section */}
+        <TabsContent value="settings" className="space-y-6">
+          <SystemSettings />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+// Admin Overview Component
+function AdminOverview() {
+  const { data: users = [], isLoading } = useQuery({
+    queryKey: ["/api/users"],
+  });
+
+  const { data: permissions } = useQuery({
+    queryKey: ["/api/auth/permissions"],
+  });
+
+  if (isLoading) {
+    return <div className="animate-pulse space-y-4">Loading...</div>;
+  }
+
+  const roleStats = users.reduce((acc: any, user: any) => {
+    acc[user.role] = (acc[user.role] || 0) + 1;
+    return acc;
+  }, {});
+
+  return (
+    <div className="space-y-6">
+      {/* Profile Info */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Informations Super Administrateur
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h4 className="font-semibold mb-2">Permissions Actuelles</h4>
+              <div className="flex flex-wrap gap-1">
+                {permissions?.permissions?.slice(0, 8)?.map((permission: string) => (
+                  <Badge key={permission} variant="secondary" className="text-xs">
+                    {permission === "*" ? "Accès Complet" : permission.replace(/_/g, " ")}
+                  </Badge>
+                ))}
+                {permissions?.permissions?.length > 8 && (
+                  <Badge variant="outline" className="text-xs">
+                    +{permissions.permissions.length - 8} autres
+                  </Badge>
+                )}
+              </div>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2">Accès Modules</h4>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                {Object.entries(permissions?.moduleAccess || {})
+                  .filter(([_, hasAccess]) => hasAccess)
+                  .slice(0, 6)
+                  .map(([module]) => (
+                    <div key={module} className="flex items-center gap-2">
+                      <CheckCircle className="h-3 w-3 text-green-500" />
+                      {module.replace(/_/g, " ").toUpperCase()}
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* User Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Total Utilisateurs</p>
+                <p className="text-2xl font-bold">{users.length}</p>
+              </div>
+              <Users className="h-8 w-8 text-primary" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Super Admins</p>
+                <p className="text-2xl font-bold">{roleStats.admin || 0}</p>
+              </div>
+              <Shield className="h-8 w-8 text-red-500" />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div>
+              <p className="text-sm font-medium">Équipe RH</p>
+              <p className="text-2xl font-bold">{(roleStats.hr || 0) + (roleStats.recruiter || 0) + (roleStats.manager || 0)}</p>
+              <p className="text-xs text-muted-foreground">
+                HR: {roleStats.hr || 0} | Recruiter: {roleStats.recruiter || 0} | Manager: {roleStats.manager || 0}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-6">
+            <div>
+              <p className="text-sm font-medium">Candidats & Employés</p>
+              <p className="text-2xl font-bold">{(roleStats.candidate || 0) + (roleStats.employee || 0)}</p>
+              <p className="text-xs text-muted-foreground">
+                Candidats: {roleStats.candidate || 0} | Employés: {roleStats.employee || 0}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+// User Management Interface Component
+function UserManagementInterface() {
+  const { toast } = useToast();
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+
+  const { data: users = [], isLoading, refetch } = useQuery({
+    queryKey: ["/api/users", roleFilter === "all" ? null : roleFilter],
+  });
+
+  const createUserMutation = useMutation({
+    mutationFn: async (userData: any) => {
+      const response = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userData)
+      });
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error || 'Erreur lors de la création');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Utilisateur créé",
+        description: "Le nouvel utilisateur a été créé avec succès",
+      });
+      setShowCreateForm(false);
+      refetch();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: error.message || "Erreur lors de la création",
+        variant: "destructive",
+      });
+    }
+  });
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h3 className="text-xl font-semibold">Gestion des Utilisateurs</h3>
+          <p className="text-muted-foreground">
+            Créer et gérer les comptes utilisateurs avec contrôle RBAC
+          </p>
+        </div>
+        <Button onClick={() => setShowCreateForm(true)} className="flex items-center gap-2">
+          <UserPlus className="h-4 w-4" />
+          Créer Utilisateur
+        </Button>
+      </div>
+
+      {/* Filters */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Filtres</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <SelectTrigger className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tous les rôles</SelectItem>
+              <SelectItem value="admin">Super Admins</SelectItem>
+              <SelectItem value="hr">RH</SelectItem>
+              <SelectItem value="manager">Managers</SelectItem>
+              <SelectItem value="recruiter">Recruteurs</SelectItem>
+              <SelectItem value="employee">Employés</SelectItem>
+              <SelectItem value="candidate">Candidats</SelectItem>
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
+      {/* User Creation Form */}
+      {showCreateForm && (
+        <CreateUserForm 
+          onSubmit={(data) => createUserMutation.mutate(data)}
+          onCancel={() => setShowCreateForm(false)}
+          isLoading={createUserMutation.isPending}
+        />
+      )}
+
+      {/* Users Table */}
+      <EnhancedUsersTable 
+        users={users}
+        isLoading={isLoading}
+        onEdit={setEditingUser}
+        onRefetch={refetch}
+      />
+    </div>
+  );
+}
+
+// Create User Form Component
+function CreateUserForm({ onSubmit, onCancel, isLoading }: {
+  onSubmit: (data: any) => void;
+  onCancel: () => void;
+  isLoading: boolean;
+}) {
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    firstName: '',
+    lastName: '',
+    phone: '',
+    role: 'candidate'
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSubmit(formData);
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <UserPlus className="h-5 w-5" />
+          Créer un Nouvel Utilisateur
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="firstName">Prénom *</Label>
+              <Input
+                id="firstName"
+                value={formData.firstName}
+                onChange={(e) => setFormData({...formData, firstName: e.target.value})}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="lastName">Nom *</Label>
+              <Input
+                id="lastName"
+                value={formData.lastName}
+                onChange={(e) => setFormData({...formData, lastName: e.target.value})}
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="email">Email *</Label>
+            <Input
+              id="email"
+              type="email"
+              value={formData.email}
+              onChange={(e) => setFormData({...formData, email: e.target.value})}
+              required
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="password">Mot de passe temporaire *</Label>
+            <Input
+              id="password"
+              type="password"
+              value={formData.password}
+              onChange={(e) => setFormData({...formData, password: e.target.value})}
+              placeholder="Minimum 8 caractères"
+              required
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="phone">Téléphone</Label>
+            <Input
+              id="phone"
+              value={formData.phone}
+              onChange={(e) => setFormData({...formData, phone: e.target.value})}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="role">Rôle *</Label>
+            <Select value={formData.role} onValueChange={(value) => setFormData({...formData, role: value})}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="candidate">Candidat</SelectItem>
+                <SelectItem value="employee">Employé</SelectItem>
+                <SelectItem value="recruiter">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-3 w-3 text-orange-500" />
+                    Recruteur (Rôle Sensible)
+                  </div>
+                </SelectItem>
+                <SelectItem value="manager">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-3 w-3 text-blue-500" />
+                    Manager (Rôle Sensible)
+                  </div>
+                </SelectItem>
+                <SelectItem value="hr">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-3 w-3 text-purple-500" />
+                    RH (Rôle Sensible)
+                  </div>
+                </SelectItem>
+                <SelectItem value="admin">
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-3 w-3 text-red-500" />
+                    Super Admin (Rôle Sensible)
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={onCancel}>
+              Annuler
+            </Button>
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? 'Création...' : 'Créer Utilisateur'}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
+  );
+}
+
+// Enhanced Users Table Component
+function EnhancedUsersTable({ users, isLoading, onEdit, onRefetch }: {
+  users: any[];
+  isLoading: boolean;
+  onEdit: (user: any) => void;
+  onRefetch: () => void;
+}) {
+  const { toast } = useToast();
+
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) throw new Error('Erreur lors de la suppression');
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Utilisateur supprimé",
+        description: "L'utilisateur a été supprimé avec succès",
+      });
+      onRefetch();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erreur",
+        description: error.message || "Erreur lors de la suppression",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const getRoleBadge = (role: string) => {
+    const variants: Record<string, { variant: any; label: string; icon: JSX.Element }> = {
+      admin: { variant: "destructive", label: "Super Admin", icon: <Shield className="w-3 h-3" /> },
+      hr: { variant: "default", label: "RH", icon: <Users className="w-3 h-3" /> },
+      manager: { variant: "secondary", label: "Manager", icon: <Target className="w-3 h-3" /> },
+      recruiter: { variant: "secondary", label: "Recruteur", icon: <UserPlus className="w-3 h-3" /> },
+      employee: { variant: "outline", label: "Employé", icon: <Building className="w-3 h-3" /> },
+      candidate: { variant: "outline", label: "Candidat", icon: <Mail className="w-3 h-3" /> },
+    };
+    
+    const config = variants[role] || variants.candidate;
+    return (
+      <Badge variant={config.variant} className="flex items-center gap-1">
+        {config.icon}
+        {config.label}
+      </Badge>
+    );
+  };
+
+  if (isLoading) {
+    return <div className="animate-pulse h-64 bg-muted rounded"></div>;
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Utilisateurs ({users.length})</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left p-2">Utilisateur</th>
+                <th className="text-left p-2">Contact</th>
+                <th className="text-left p-2">Rôle</th>
+                <th className="text-left p-2">Permissions</th>
+                <th className="text-left p-2">Créé</th>
+                <th className="text-left p-2">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((user: any) => (
+                <tr key={user.id} className="border-b hover:bg-muted/50">
+                  <td className="p-2">
+                    <div className="flex items-center space-x-3">
+                      {user.profileImageUrl && (
+                        <img
+                          src={user.profileImageUrl}
+                          alt={`${user.firstName} ${user.lastName}`}
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
+                      )}
+                      <div>
+                        <div className="font-medium">
+                          {user.firstName} {user.lastName}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {user.id}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="p-2">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1 text-sm">
+                        <Mail className="w-3 h-3" />
+                        {user.email || "Non défini"}
+                      </div>
+                      {user.phone && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Phone className="w-3 h-3" />
+                          {user.phone}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  <td className="p-2">{getRoleBadge(user.role || "candidate")}</td>
+                  <td className="p-2">
+                    <div className="text-xs">
+                      {user.permissions?.slice(0, 2)?.map((perm: string) => (
+                        <Badge key={perm} variant="outline" className="text-xs mr-1 mb-1">
+                          {perm === "*" ? "ALL" : perm.split("_")[0]}
+                        </Badge>
+                      ))}
+                      {user.permissions?.length > 2 && (
+                        <Badge variant="outline" className="text-xs">
+                          +{user.permissions.length - 2}
+                        </Badge>
+                      )}
+                    </div>
+                  </td>
+                  <td className="p-2 text-xs text-muted-foreground">
+                    {user.createdAt 
+                      ? new Date(user.createdAt).toLocaleDateString("fr-FR")
+                      : "Non défini"
+                    }
+                  </td>
+                  <td className="p-2">
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onEdit(user)}
+                      >
+                        <Edit className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (confirm(`Supprimer ${user.firstName} ${user.lastName} ?`)) {
+                            deleteUserMutation.mutate(user.id);
+                          }
+                        }}
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// System Settings Component
+function SystemSettings() {
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Shield className="h-5 w-5" />
+            Paramètres Syst��me
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="p-4 border rounded-lg">
+              <h4 className="font-semibold mb-2">Sécurité RBAC</h4>
+              <p className="text-sm text-muted-foreground mb-2">
+                Système de contrôle d'accès basé sur les rôles activé
+              </p>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-green-500" />
+                <span className="text-sm">Contrôles de rôles sensibles actifs</span>
+              </div>
+            </div>
+            
+            <div className="p-4 border rounded-lg">
+              <h4 className="font-semibold mb-2">Permissions Héritées</h4>
+              <p className="text-sm text-muted-foreground mb-2">
+                Les rôles héritent automatiquement des permissions inférieures
+              </p>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-green-500" />
+                <span className="text-sm">Hiérarchie des permissions activée</span>
+              </div>
+            </div>
+
+            <div className="p-4 border rounded-lg">
+              <h4 className="font-semibold mb-2">Restrictions Super Admin</h4>
+              <p className="text-sm text-muted-foreground mb-2">
+                Seuls les super admins peuvent créer des rôles sensibles
+              </p>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-green-500" />
+                <span className="text-sm">Sécurité rôles sensibles activée</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

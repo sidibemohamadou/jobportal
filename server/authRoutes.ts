@@ -20,8 +20,20 @@ const createAdminSchema = z.object({
   password: z.string().min(8, "Le mot de passe doit contenir au moins 8 caractères"),
   firstName: z.string().min(1, "Le prénom est requis"),
   lastName: z.string().min(1, "Le nom est requis"),
-  role: z.enum(["admin", "hr", "recruiter", "manager"]),
+  role: z.enum(["candidate", "employee", "recruiter", "manager", "hr", "admin"], {
+    errorMap: () => ({ message: "Rôle invalide. Rôles autorisés: candidate, employee, recruiter, manager, hr, admin" })
+  }),
   phone: z.string().optional()
+});
+
+// Schema pour la mise à jour des utilisateurs avec validation des rôles
+const updateUserSchema = z.object({
+  email: z.string().email("Email invalide").optional(),
+  firstName: z.string().min(1, "Le prénom est requis").optional(),
+  lastName: z.string().min(1, "Le nom est requis").optional(),
+  role: z.enum(["candidate", "employee", "recruiter", "manager", "hr", "admin"]).optional(),
+  phone: z.string().optional(),
+  profileCompleted: z.boolean().optional()
 });
 
 export function registerAuthRoutes(app: Express) {
@@ -148,18 +160,25 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
-  // Création d'utilisateur admin (réservé au super admin)
+  // Création d'utilisateur admin (réservé au super admin avec contrôles RBAC)
   app.post("/api/admin/users", async (req, res) => {
     try {
-      // Vérifier que l'utilisateur connecté est un admin
+      // Vérifier que l'utilisateur connecté est un super admin
       const currentUser = (req.session as any)?.user;
       if (!currentUser || currentUser.role !== "admin") {
         return res.status(403).json({ 
-          message: "Seul le super administrateur peut créer des comptes administrateurs" 
+          message: "Seul le super administrateur peut créer des comptes utilisateurs" 
         });
       }
 
       const userData = createAdminSchema.parse(req.body);
+      
+      // Vérification RBAC: peut-on créer ce rôle ?
+      if (!AuthService.canManageRole(currentUser.role, userData.role)) {
+        return res.status(403).json({
+          message: `Vous n'avez pas les permissions pour créer un utilisateur avec le rôle '${userData.role}'. Seul le super administrateur peut créer des rôles sensibles.`
+        });
+      }
       
       const newUser = await AuthService.createAdminUser(userData);
       
@@ -170,9 +189,11 @@ export function registerAuthRoutes(app: Express) {
           firstName: newUser.firstName,
           lastName: newUser.lastName,
           role: newUser.role,
-          phone: newUser.phone
+          phone: newUser.phone,
+          permissions: AuthService.getRolePermissions(newUser.role),
+          moduleAccess: AuthService.getModuleAccess(newUser.role)
         },
-        message: "Utilisateur administrateur créé avec succès" 
+        message: `Utilisateur ${userData.role} créé avec succès` 
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -187,6 +208,53 @@ export function registerAuthRoutes(app: Express) {
       console.error("Create admin user error:", error);
       res.status(500).json({ message: "Erreur interne du serveur" });
     }
+  });
+
+  // Récupération des informations utilisateur avec permissions
+  app.get("/api/admin/users", async (req, res) => {
+    try {
+      // Vérifier que l'utilisateur connecté a les permissions
+      const currentUser = (req.session as any)?.user;
+      if (!currentUser || !AuthService.hasPermission(currentUser.role, ["admin", "hr"])) {
+        return res.status(403).json({ 
+          message: "Accès refusé. Permissions insuffisantes." 
+        });
+      }
+
+      const { role } = req.query;
+      // Cette route devra être implémentée dans storage pour récupérer les utilisateurs
+      // const users = role ? await storage.getUsersByRole(role as string) : await storage.getAllUsers();
+      
+      // Pour maintenant, retourner une réponse temporaire
+      res.json({ 
+        message: "Route en cours d'implémentation",
+        permissions: AuthService.getRolePermissions(currentUser.role),
+        canCreateSensitiveRoles: AuthService.hasPermission(currentUser.role, ["admin"])
+      });
+    } catch (error) {
+      console.error("Get users error:", error);
+      res.status(500).json({ message: "Erreur interne du serveur" });
+    }
+  });
+
+  // Route pour obtenir les permissions utilisateur actuelles
+  app.get("/api/auth/permissions", (req, res) => {
+    const user = (req.session as any)?.user;
+    if (!user) {
+      return res.status(401).json({ message: "Non connecté" });
+    }
+
+    const permissions = AuthService.getRolePermissions(user.role);
+    const moduleAccess = AuthService.getModuleAccess(user.role);
+    const roleHierarchy = AuthService.getRoleHierarchy();
+
+    res.json({
+      role: user.role,
+      permissions,
+      moduleAccess,
+      hierarchy: roleHierarchy[user.role] || 0,
+      canCreateSensitiveRoles: user.role === "admin"
+    });
   });
 
   // === ROUTES COMMUNES ===
