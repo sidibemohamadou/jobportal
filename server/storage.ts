@@ -2383,3 +2383,6 @@ export class DatabaseStorage implements IStorage {
 
 // Use DatabaseStorage instead of MemStorage
 export const storage = new DatabaseStorage();
+
+// Export high availability storage as primary
+export * from './storage-fallback';

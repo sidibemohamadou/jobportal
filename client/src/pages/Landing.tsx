@@ -412,6 +412,9 @@ export default function Landing() {
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li><button onClick={() => document.getElementById('jobs-section')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-primary transition-colors">Rechercher un emploi</button></li>
                 <li><button onClick={() => window.location.href = "/login"} className="hover:text-primary transition-colors">Se connecter</button></li>
+                {process.env.NODE_ENV === "development" && (
+                  <li><button onClick={() => window.location.href = "/dev-login"} className="hover:text-orange-500 transition-colors font-medium">🔧 Dev Login</button></li>
+                )}
                 <li><button onClick={() => document.getElementById('about-section')?.scrollIntoView({ behavior: 'smooth' })} className="hover:text-primary transition-colors">À propos</button></li>
               </ul>
             </div>

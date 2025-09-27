@@ -38,25 +38,51 @@ export class AuthService {
   static async authenticateUser(credentials: LoginCredentials): Promise<AuthUser | null> {
     const { email, password } = credentials;
     
-    // Chercher l'utilisateur par email
-    const user = await storage.getUserByEmail(email);
-    if (!user || !user.password) {
+    // En développement, utiliser des comptes de test si la DB n'est pas disponible
+    if (process.env.NODE_ENV === 'development') {
+      const testAccounts = [
+        { email: 'admin@test.com', password: 'admin123', role: 'admin', firstName: 'Super', lastName: 'Admin' },
+        { email: 'hr@test.com', password: 'hr123', role: 'hr', firstName: 'HR', lastName: 'Manager' },
+        { email: 'recruiter@test.com', password: 'recruiter123', role: 'recruiter', firstName: 'John', lastName: 'Recruiter' },
+        { email: 'candidate@test.com', password: 'candidate123', role: 'candidate', firstName: 'Jane', lastName: 'Doe' },
+      ];
+      
+      const testUser = testAccounts.find(acc => acc.email === email && acc.password === password);
+      if (testUser) {
+        return {
+          id: `test-${testUser.role}-1`,
+          email: testUser.email,
+          firstName: testUser.firstName,
+          lastName: testUser.lastName,
+          role: testUser.role
+        };
+      }
+    }
+    
+    try {
+      // Chercher l'utilisateur par email
+      const user = await storage.getUserByEmail(email);
+      if (!user || !user.password) {
+        return null;
+      }
+
+      // Vérifier le mot de passe
+      const isValidPassword = await this.verifyPassword(password, user.password);
+      if (!isValidPassword) {
+        return null;
+      }
+
+      return {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role || "candidate"
+      };
+    } catch (error) {
+      console.error("Authentication error:", error);
       return null;
     }
-
-    // Vérifier le mot de passe
-    const isValidPassword = await this.verifyPassword(password, user.password);
-    if (!isValidPassword) {
-      return null;
-    }
-
-    return {
-      id: user.id,
-      email: user.email,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      role: user.role || "candidate"
-    };
   }
 
   // Inscription d'un candidat

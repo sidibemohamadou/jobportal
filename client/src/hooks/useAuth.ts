@@ -8,8 +8,18 @@ export function useAuth() {
     retry: false,
   });
 
+  // In development, check localStorage for profile completion status
+  const profileCompleted = user?.profileCompleted || 
+    (process.env.NODE_ENV === "development" && localStorage.getItem("profileCompleted") === "true");
+
+  // Enhanced user object with profile completion status
+  const enhancedUser = user ? {
+    ...user,
+    profileCompleted
+  } : null;
+
   return {
-    user,
+    user: enhancedUser,
     isLoading,
     isAuthenticated: !!user,
   };

@@ -33,6 +33,7 @@ import EmployeeManagement from "@/pages/EmployeeManagement";
 import CandidateInvitations from "@/pages/CandidateInvitations";
 import CandidateInvitationHandler from "@/pages/CandidateInvitationHandler";
 import NotFound from "@/pages/not-found";
+import DevLogin from "@/pages/DevLogin";
 
 // Système de notification simple (remplace Toaster)
 function SimpleNotification({ message, type = "info" }: { message?: string; type?: "info" | "success" | "error" }) {
@@ -89,6 +90,9 @@ function Router() {
             <Route path="/login" component={CandidateLogin} />
             <Route path="/admin/login" component={AdminLogin} />
             <Route path="/candidate-invitation/:token" component={CandidateInvitationHandler} />
+            {process.env.NODE_ENV === "development" && (
+              <Route path="/dev-login" component={DevLogin} />
+            )}
           </>
         ) : (
           <>
