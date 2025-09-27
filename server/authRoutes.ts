@@ -76,6 +76,46 @@ export function registerAuthRoutes(app: Express) {
     }
   });
 
+  // Route de test pour connexion automatique en développement
+  app.post("/api/auth/dev-login", async (req, res) => {
+    if (process.env.NODE_ENV !== "development") {
+      return res.status(403).json({ message: "Route de développement seulement" });
+    }
+
+    try {
+      const { role = "candidate" } = req.body;
+      
+      // Créer un utilisateur de test
+      const testUser = {
+        id: `test-${role}-${Date.now()}`,
+        email: `${role}@test.com`,
+        firstName: "Test",
+        lastName: role.charAt(0).toUpperCase() + role.slice(1),
+        role,
+        profileCompleted: role !== "candidate"
+      };
+
+      // Créer une session
+      if (!req.session) {
+        console.error("Session not available");
+        return res.status(500).json({ message: "Configuration de session manquante" });
+      }
+      (req.session as any).user = testUser;
+      
+      // Redirection selon le rôle
+      const redirectPath = AuthService.getRedirectPath(testUser.role);
+      
+      res.json({ 
+        user: testUser,
+        redirectPath,
+        message: `Connexion de test réussie (${role})` 
+      });
+    } catch (error) {
+      console.error("Dev login error:", error);
+      res.status(500).json({ message: "Erreur interne du serveur" });
+    }
+  });
+
   // Inscription candidat
   app.post("/api/auth/register", async (req, res) => {
     try {

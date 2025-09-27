@@ -1,6 +1,6 @@
 import { Express } from "express";
 import type { Server } from "http";
-import { storage } from "./storage";
+import { storage } from "./storage-fallback";
 import { registerAuthRoutes } from "./authRoutes";
 import { insertJobSchema, insertApplicationSchema, updateApplicationSchema } from "@shared/schema";
 
