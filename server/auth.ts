@@ -1,5 +1,5 @@
 import bcrypt from "bcryptjs";
-import { storage } from "./storage";
+import { storage } from "./storage-fallback";
 import type { User } from "@shared/schema";
 
 export interface AuthUser {
@@ -38,13 +38,45 @@ export class AuthService {
   static async authenticateUser(credentials: LoginCredentials): Promise<AuthUser | null> {
     const { email, password } = credentials;
     
-    // En développement, utiliser des comptes de test si la DB n'est pas disponible
+    try {
+      // Chercher l'utilisateur par email dans le storage (avec fallback)
+      const user = await storage.getUserByEmail(email);
+      if (user && user.password) {
+        // Vérifier le mot de passe (gérer les hash de test)
+        let isValidPassword = false;
+        if (process.env.NODE_ENV === 'development' && user.password?.startsWith('$2a$12$test.hash')) {
+          // Comptes de test avec mots de passe simplifiés
+          const testPasswords: Record<string, string> = {
+            'admin@test.com': 'admin123',
+            'candidate@test.com': 'test123',
+            'hr@test.com': 'hr123',
+            'recruiter@test.com': 'recruiter123'
+          };
+          isValidPassword = testPasswords[email] === password;
+        } else {
+          isValidPassword = await this.verifyPassword(password, user.password);
+        }
+        if (isValidPassword) {
+          return {
+            id: user.id,
+            email: user.email,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            role: user.role || "candidate"
+          };
+        }
+      }
+    } catch (error) {
+      console.error("Authentication error:", error);
+    }
+
+    // En développement, utiliser des comptes de test comme fallback
     if (process.env.NODE_ENV === 'development') {
       const testAccounts = [
         { email: 'admin@test.com', password: 'admin123', role: 'admin', firstName: 'Super', lastName: 'Admin' },
         { email: 'hr@test.com', password: 'hr123', role: 'hr', firstName: 'HR', lastName: 'Manager' },
         { email: 'recruiter@test.com', password: 'recruiter123', role: 'recruiter', firstName: 'John', lastName: 'Recruiter' },
-        { email: 'candidate@test.com', password: 'candidate123', role: 'candidate', firstName: 'Jane', lastName: 'Doe' },
+        { email: 'candidate@test.com', password: 'test123', role: 'candidate', firstName: 'Jane', lastName: 'Doe' },
       ];
       
       const testUser = testAccounts.find(acc => acc.email === email && acc.password === password);
@@ -59,30 +91,7 @@ export class AuthService {
       }
     }
     
-    try {
-      // Chercher l'utilisateur par email
-      const user = await storage.getUserByEmail(email);
-      if (!user || !user.password) {
-        return null;
-      }
-
-      // Vérifier le mot de passe
-      const isValidPassword = await this.verifyPassword(password, user.password);
-      if (!isValidPassword) {
-        return null;
-      }
-
-      return {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        role: user.role || "candidate"
-      };
-    } catch (error) {
-      console.error("Authentication error:", error);
-      return null;
-    }
+    return null;
   }
 
   // Inscription d'un candidat
@@ -169,7 +178,7 @@ export class AuthService {
         return "/employee";
       case "candidate":
       default:
-        return "/dashboard";
+        return "/";
     }
   }
 

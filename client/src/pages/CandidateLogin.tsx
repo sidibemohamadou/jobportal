@@ -57,7 +57,7 @@ export default function CandidateLogin() {
     },
     onSuccess: (response) => {
       // Redirection vers le dashboard candidat
-      setLocation(response.redirectPath || "/dashboard");
+      setLocation(response.redirectPath || "/");
     },
     onError: (error: any) => {
       setError(error.message || "Erreur de connexion");
@@ -70,7 +70,7 @@ export default function CandidateLogin() {
     },
     onSuccess: (response) => {
       // Redirection vers le dashboard candidat
-      setLocation(response.redirectPath || "/dashboard");
+      setLocation(response.redirectPath || "/");
     },
     onError: (error: any) => {
       setError(error.message || "Erreur lors de l'inscription");
@@ -336,7 +336,7 @@ export default function CandidateLogin() {
         <div className="mt-8 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
           <h3 className="font-medium text-yellow-800 mb-2">💡 Comptes de test</h3>
           <div className="text-sm text-yellow-700 space-y-1">
-            <p><strong>Candidat:</strong> candidat.test@example.com / candidate123</p>
+            <p><strong>Candidat:</strong> candidate@test.com / test123</p>
           </div>
         </div>
       </div>

@@ -155,7 +155,7 @@ export default function ProfileCompletion() {
       
       // Redirection vers le dashboard
       setTimeout(() => {
-        window.location.href = "/dashboard";
+        window.location.href = "/";
       }, 1500);
     },
     onError: (error: any) => {
